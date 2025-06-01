@@ -23,7 +23,7 @@ export default function HomePage() {
   return (
     <main className="p-2 md:p-6">
       <h1 className="text-2xl font-bold text-center mb-4">Football App</h1>
-      <div className="border p-4 md:p-12 rounded-xl">
+      <div className="border border-black p-4 md:p-12 rounded-xl">
 
         <Accordion type="single" className="w-full space-y-4">
           {/* Player Input */}
