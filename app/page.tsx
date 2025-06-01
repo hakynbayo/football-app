@@ -25,7 +25,7 @@ export default function HomePage() {
       <h1 className="text-2xl font-bold text-center mb-4">Football App</h1>
       <div className="border p-4 md:p-12 rounded-xl">
 
-        <Accordion type="multiple" className="w-full space-y-4">
+        <Accordion type="single" className="w-full space-y-4">
           {/* Player Input */}
           <AccordionItem value="player-input">
             <AccordionTrigger>GENERATE TEAMS</AccordionTrigger>
@@ -43,7 +43,7 @@ export default function HomePage() {
                   No teams have been generated yet.
                 </p>
               ) : (
-                <section className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <section className="flex gap-4 justify-between items-center mt-4">
                   {teams.map((team) => (
                     <TeamCard key={team.name} team={team} />
                   ))}
@@ -59,7 +59,9 @@ export default function HomePage() {
             <AccordionContent>
               <MatchInput
                 teams={teams.map((t) => t.name)}
-                onSubmit={addMatchResult}
+                onSubmit={(teamA, teamB, scoreA, scoreB) =>
+                  addMatchResult(teamA, teamB, Number(scoreA), Number(scoreB))
+                }
               />
             </AccordionContent>
           </AccordionItem>

@@ -18,8 +18,11 @@ export const useMatchResults = () => {
         const updatedMatches = [...matches, newMatch];
         setMatches(updatedMatches);
         saveToStorage(STORAGE_KEYS.MATCHES, updatedMatches);
+        updateStatsFromMatches(updatedMatches);
+    };
 
-        const newStats = [...stats];
+    const updateStatsFromMatches = (matchList: MatchResult[]) => {
+        const newStats: TeamStats[] = [];
 
         const updateTeam = (teamName: string, update: Partial<TeamStats>) => {
             let team = newStats.find((t) => t.name === teamName);
@@ -29,7 +32,7 @@ export const useMatchResults = () => {
             }
             Object.assign(team, {
                 played: team.played + 1,
-                goals: team.goals + (teamName === teamA ? scoreA : scoreB),
+                goals: team.goals + (update.goals || 0),
                 wins: team.wins + (update.wins || 0),
                 draws: team.draws + (update.draws || 0),
                 losses: team.losses + (update.losses || 0),
@@ -37,19 +40,30 @@ export const useMatchResults = () => {
             });
         };
 
-        if (scoreA > scoreB) {
-            updateTeam(teamA, { wins: 1, points: 3 });
-            updateTeam(teamB, { losses: 1 });
-        } else if (scoreB > scoreA) {
-            updateTeam(teamB, { wins: 1, points: 3 });
-            updateTeam(teamA, { losses: 1 });
-        } else {
-            updateTeam(teamA, { draws: 1, points: 1 });
-            updateTeam(teamB, { draws: 1, points: 1 });
+        for (const match of matchList) {
+            const { teamA, teamB, scoreA, scoreB } = match;
+
+            if (scoreA > scoreB) {
+                updateTeam(teamA, { wins: 1, points: 3, goals: scoreA });
+                updateTeam(teamB, { losses: 1, goals: scoreB });
+            } else if (scoreB > scoreA) {
+                updateTeam(teamB, { wins: 1, points: 3, goals: scoreB });
+                updateTeam(teamA, { losses: 1, goals: scoreA });
+            } else {
+                updateTeam(teamA, { draws: 1, points: 1, goals: scoreA });
+                updateTeam(teamB, { draws: 1, points: 1, goals: scoreB });
+            }
         }
 
         setStats(newStats);
         saveToStorage(STORAGE_KEYS.STATS, newStats);
+    };
+
+    const removeMatch = (index: number) => {
+        const updatedMatches = matches.filter((_, i) => i !== index);
+        setMatches(updatedMatches);
+        saveToStorage(STORAGE_KEYS.MATCHES, updatedMatches);
+        updateStatsFromMatches(updatedMatches); // recalculate stats
     };
 
     const clearMatchResults = () => {
@@ -59,5 +73,11 @@ export const useMatchResults = () => {
         saveToStorage(STORAGE_KEYS.STATS, []);
     };
 
-    return { matches, stats, addMatchResult, clearMatchResults };
+    return {
+        matches,
+        stats,
+        addMatchResult,
+        removeMatch,
+        clearMatchResults,
+    };
 };

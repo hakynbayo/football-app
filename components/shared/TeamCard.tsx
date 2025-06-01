@@ -11,7 +11,7 @@ const TeamCard: FC<TeamCardProps> = ({ team }) => {
 
 
   return (
-    <Card className="w-full max-w-md mx-auto mb-4">
+    <Card className="w-1/2 mb-4">
       <CardHeader className="text-xl font-semibold text-center">
         {team.name}
       </CardHeader>
