@@ -13,15 +13,17 @@ import StatsTable from "@/components/shared/StatsTable";
 import TeamCard from "@/components/shared/TeamCard";
 import { useMatchResults } from "@/hooks/useMatchResult";
 import { useTeams } from "@/hooks/useTeams";
+import MatchHistory from "@/components/shared/MatchHistory";
 
 export default function HomePage() {
   const { teams, setTeams } = useTeams();
   const { stats, addMatchResult } = useMatchResults();
 
+
   return (
-    <main className="p-6">
+    <main className="p-2 md:p-6">
       <h1 className="text-2xl font-bold text-center mb-4">Football App</h1>
-      <div className="border p-12 rounded-xl">
+      <div className="border p-4 md:p-12 rounded-xl">
 
         <Accordion type="multiple" className="w-full space-y-4">
           {/* Player Input */}
@@ -33,50 +35,57 @@ export default function HomePage() {
           </AccordionItem>
 
           {/* Teams Display */}
-          {teams.length > 0 && (
-            <AccordionItem value="teams">
-              <AccordionTrigger>TEAMS</AccordionTrigger>
-              <AccordionContent>
+          <AccordionItem value="teams">
+            <AccordionTrigger>TEAMS</AccordionTrigger>
+            <AccordionContent>
+              {teams.length === 0 ? (
+                <p className="text-center text-gray-500 italic mt-4">
+                  No teams have been generated yet.
+                </p>
+              ) : (
                 <section className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                   {teams.map((team) => (
                     <TeamCard key={team.name} team={team} />
                   ))}
                 </section>
-              </AccordionContent>
-            </AccordionItem>
-          )}
+              )}
+            </AccordionContent>
+          </AccordionItem>
 
           {/* Match Input */}
-          {teams.length >= 2 && (
-            <AccordionItem value="match-input">
-              <AccordionTrigger>ENTER MATCH RESULT</AccordionTrigger>
-              <AccordionContent>
-                <MatchInput
-                  teams={teams.map((t) => t.name)}
-                  onSubmit={addMatchResult}
-                />
-              </AccordionContent>
-            </AccordionItem>
-          )}
+
+          <AccordionItem value="match-input">
+            <AccordionTrigger>ENTER MATCH RESULT</AccordionTrigger>
+            <AccordionContent>
+              <MatchInput
+                teams={teams.map((t) => t.name)}
+                onSubmit={addMatchResult}
+              />
+            </AccordionContent>
+          </AccordionItem>
+
+          <AccordionItem value="match-history">
+            <AccordionTrigger> MATCH HISTORY</AccordionTrigger>
+            <AccordionContent>
+              <MatchHistory
+              />
+            </AccordionContent>
+          </AccordionItem>
 
           {/* Stats Table */}
-          {stats.length > 0 && (
-            <AccordionItem value="stats">
-              <AccordionTrigger>STANDINGS</AccordionTrigger>
-              <AccordionContent>
-                <StatsTable stats={stats} />
-              </AccordionContent>
-            </AccordionItem>
-          )}
+          <AccordionItem value="stats">
+            <AccordionTrigger>STANDINGS</AccordionTrigger>
+            <AccordionContent>
+              <StatsTable stats={stats} />
+            </AccordionContent>
+          </AccordionItem>
         </Accordion>
       </div>
 
       {/* Reset stays always visible */}
-      {teams.length > 0 && (
-        <div className="flex justify-center mx-auto mt-6 w-[60%]">
-          <ResetTeamsButton />
-        </div>
-      )}
+      <div className="flex justify-center mx-auto mt-6 w-[60%]">
+        <ResetTeamsButton />
+      </div>
     </main>
   );
 }

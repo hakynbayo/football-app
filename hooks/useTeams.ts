@@ -7,7 +7,11 @@ export const useTeams = () => {
 
   useEffect(() => {
     const saved = getFromStorage<Team[]>(STORAGE_KEYS.TEAMS, []);
-    setTeams(saved);
+    const valid = saved.map((team) => ({
+      ...team,
+      players: Array.isArray(team.players) ? team.players : [],
+    }));
+    setTeams(valid);
   }, []);
 
   const setAndSaveTeams = (newTeams: Team[]) => {

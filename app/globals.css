@@ -130,3 +130,11 @@
   transform: translateY(-2px);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none; /* IE/Edge */
+  scrollbar-width: none; /* Firefox */
+}
