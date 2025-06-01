@@ -7,11 +7,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Team } from "@/types/team";
 
 interface PlayerInputFormProps {
+    playerText: string;
+    setPlayerText: (value: string) => void;
     onGenerateTeams: (teams: Team[]) => void;
 }
 
-const PlayerInputForm: FC<PlayerInputFormProps> = ({ onGenerateTeams }) => {
-    const [playerText, setPlayerText] = useState("");
+const PlayerInputForm: FC<PlayerInputFormProps> = ({
+    playerText,
+    setPlayerText,
+    onGenerateTeams,
+}) => {
     const [playersPerTeam, setPlayersPerTeam] = useState(4);
 
     const handleGenerate = () => {
@@ -51,7 +56,9 @@ const PlayerInputForm: FC<PlayerInputFormProps> = ({ onGenerateTeams }) => {
             />
 
             <div>
-                <label className="text-sm font-medium block mb-1">Players per team:</label>
+                <label className="text-sm font-medium block mb-1">
+                    Players per team:
+                </label>
                 <Input
                     type="number"
                     min={1}
