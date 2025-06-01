@@ -55,7 +55,7 @@ export function ResetTeamsButton() {
         <AlertDialogHeader>
           <AlertDialogTitle>Reset all teams and matches?</AlertDialogTitle>
           <AlertDialogDescription>
-            This will permanently delete all teams and match results. Enter the password to confirm.
+            This will permanently delete all teams and match results. Enter "256256" to confirm.
           </AlertDialogDescription>
         </AlertDialogHeader>
 
