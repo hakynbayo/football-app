@@ -43,6 +43,7 @@ const PlayerInputForm: FC<PlayerInputFormProps> = ({
             players: shuffled.slice(i * playersPerTeam, (i + 1) * playersPerTeam),
         }));
 
+        alert("Teams generated")
         onGenerateTeams(teams);
     };
 

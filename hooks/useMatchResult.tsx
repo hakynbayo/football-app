@@ -44,20 +44,24 @@ export const useMatchResults = () => {
             const { teamA, teamB, scoreA, scoreB } = match;
 
             if (scoreA > scoreB) {
+                // Team A wins: gains its own goals, Team B loses: subtracts opponent's goals
                 updateTeam(teamA, { wins: 1, points: 3, goals: scoreA });
-                updateTeam(teamB, { losses: 1, goals: scoreB });
+                updateTeam(teamB, { losses: 1, goals: -scoreA });
             } else if (scoreB > scoreA) {
+                // Team B wins: gains its own goals, Team A loses: subtracts opponent's goals
                 updateTeam(teamB, { wins: 1, points: 3, goals: scoreB });
-                updateTeam(teamA, { losses: 1, goals: scoreA });
+                updateTeam(teamA, { losses: 1, goals: -scoreB });
             } else {
-                updateTeam(teamA, { draws: 1, points: 1, goals: scoreA });
-                updateTeam(teamB, { draws: 1, points: 1, goals: scoreB });
+                // Draw: no goal change
+                updateTeam(teamA, { draws: 1, points: 1 });
+                updateTeam(teamB, { draws: 1, points: 1 });
             }
         }
 
         setStats(newStats);
         saveToStorage(STORAGE_KEYS.STATS, newStats);
     };
+
 
     const removeMatch = (index: number) => {
         const updatedMatches = matches.filter((_, i) => i !== index);
