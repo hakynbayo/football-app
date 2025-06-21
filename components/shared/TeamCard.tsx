@@ -15,7 +15,7 @@ const TeamCard: FC<TeamCardProps> = ({ team }) => {
         {team.name}
       </CardHeader>
       <CardContent>
-        <ul className="space-y-1">
+        <ul className="text-sm space-y-1">
           {team.players.map((player, idx) => (
             <li key={idx} className="pl-2 border-l-2 border-blue-500">
               {player}
