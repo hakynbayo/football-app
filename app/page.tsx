@@ -25,7 +25,7 @@ export default function HomePage() {
     <main className="p-2 md:p-6">
       <h1 className="text-2xl font-bold text-center mb-4">Football App</h1>
       <div className="border border-black p-4 md:p-12 rounded-xl">
-        <Accordion type="single" className="w-full space-y-4">
+        <Accordion type="multiple" className="w-full space-y-4">
           {/* Player Input */}
           <AccordionItem value="player-input">
             <AccordionTrigger className="flex items-center justify-between w-full py-4 text-left font-medium border-b border-gray-200 transition-all">
