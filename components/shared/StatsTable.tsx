@@ -12,7 +12,7 @@ const StatsTable: FC<StatsTableProps> = ({ stats }) => {
                 <thead className="bg-gray-100">
                     <tr>
                         <th className="p-2 border border-gray-300 whitespace-nowrap w-24 sm:w-auto">Team</th>
-                        <th className="p-2 border border-gray-300 whitespace-nowrap w-12 sm:w-auto">Played</th>
+
                         <th className="p-2 border border-gray-300 whitespace-nowrap w-12 sm:w-auto">Points</th>
                         <th className="p-2 border border-gray-300 whitespace-nowrap w-12 sm:w-auto">Win</th>
                         <th className="p-2 border border-gray-300 whitespace-nowrap w-12 sm:w-auto">Draw</th>
@@ -29,7 +29,6 @@ const StatsTable: FC<StatsTableProps> = ({ stats }) => {
                         .map((team) => (
                             <tr key={team.name} className="hover:bg-gray-50">
                                 <td className="p-2 border border-gray-300 w-24 sm:w-auto">{team.name}</td>
-                                <td className="p-2 border border-gray-300 w-12 sm:w-auto">{team.played}</td>
                                 <td className="p-2 border border-gray-300 w-12 sm:w-auto">{team.points}</td>
                                 <td className="p-2 border border-gray-300 w-12 sm:w-auto">{team.wins}</td>
                                 <td className="p-2 border border-gray-300 w-12 sm:w-auto">{team.draws}</td>
