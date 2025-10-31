@@ -74,6 +74,7 @@ const configWithDb = {
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   ...configWithDb,
+  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
   callbacks: {
     async session({ session, token }) {
       if (session.user) {
@@ -90,6 +91,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       return token;
     },
   },
+  pages: {
+    signIn: "/login",
+    error: "/login",
+  },
+  debug: process.env.NODE_ENV === "development",
 });
 
 // Helper function to register new users
