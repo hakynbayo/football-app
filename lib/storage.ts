@@ -14,4 +14,6 @@ export const STORAGE_KEYS = {
   TEAMS: "teams",
   STATS: "teamStats",
   MATCHES: "matches",
+  TEAM_OF_THE_WEEK: "teamOfTheWeek",
+  TEAM_OF_THE_WEEK_HISTORY: "teamOfTheWeekHistory",
 } as const;

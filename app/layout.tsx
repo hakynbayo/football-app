@@ -3,6 +3,7 @@
 import "./globals.css";
 import { Inter } from "next/font/google";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { SessionProvider } from "next-auth/react";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Loader } from "lucide-react";
@@ -35,13 +36,13 @@ export default function RootLayout({
 
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} bg-gray-50 dark:bg-gray-900`}>
-        <QueryClientProvider client={queryClient}>
-          {loading && <Loader />}
-          <main className="container mx-auto px-4 py-8 max-w-3xl min-h-screen">
+      <body className={`${inter.className}`}>
+        <SessionProvider>
+          <QueryClientProvider client={queryClient}>
+            {loading && <Loader />}
             {children}
-          </main>
-        </QueryClientProvider>
+          </QueryClientProvider>
+        </SessionProvider>
       </body>
     </html>
   );

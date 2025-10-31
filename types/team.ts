@@ -19,3 +19,9 @@ export interface MatchResult {
   scoreA: number;
   scoreB: number;
 }
+
+export interface TeamOfTheWeek {
+  team: Team;
+  date: string;
+  month: string;
+}

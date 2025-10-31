@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { useMatchResults } from "@/hooks/useMatchResult";
 import { useTeams } from "@/hooks/useTeams";
 import { useState } from "react";
+import { Trash2 } from "lucide-react";
 
 const DEFAULT_PASSWORD = "256256";
 
@@ -47,9 +48,12 @@ export function ResetTeamsButton() {
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogTrigger asChild>
-        <Button className="w-[78%]" variant="destructive">
-          Reset Teams
-        </Button>
+        <button
+          className="p-2 text-slate-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 rounded-lg transition-colors"
+          title="Reset all data"
+        >
+          <Trash2 className="w-5 h-5" />
+        </button>
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
