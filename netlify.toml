@@ -14,11 +14,11 @@
 [functions]
   node_bundler = "esbuild"
 
-# Redirect rules for better error handling
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+# Redirect rules - commented out to fix build issues
+# [[redirects]]
+#   from = "/*"
+#   to = "/index.html"
+#   status = 200
 
 # Environment variables needed (set these in Netlify dashboard):
 # Required:
