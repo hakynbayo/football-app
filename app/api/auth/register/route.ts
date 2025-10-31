@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { registerUser } from "@/lib/auth";
 
+// Force Node.js runtime for serverless functions (required for SQLite)
+export const runtime = "nodejs";
+
 export async function POST(request: NextRequest) {
   try {
     const { name, email, password } = await request.json();

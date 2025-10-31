@@ -20,41 +20,53 @@ const configWithDb = {
           return null;
         }
 
-        // Support both email and username login
-        const emailOrUsername = credentials.email as string;
-        let user = await db
-          .select()
-          .from(users)
-          .where(eq(users.email, emailOrUsername))
-          .get();
+        try {
+          // Check if database is available
+          if (!db) {
+            console.error("Database not initialized");
+            throw new Error("Database unavailable");
+          }
 
-        // If not found by email, try by username
-        if (!user) {
-          const allUsers = await db.select().from(users).all();
-          user = allUsers.find(
-            (u) => u.name?.toLowerCase() === emailOrUsername.toLowerCase()
+          // Support both email and username login
+          const emailOrUsername = credentials.email as string;
+          let user = await db
+            .select()
+            .from(users)
+            .where(eq(users.email, emailOrUsername))
+            .get();
+
+          // If not found by email, try by username
+          if (!user) {
+            const allUsers = await db.select().from(users).all();
+            user = allUsers.find(
+              (u) => u.name?.toLowerCase() === emailOrUsername.toLowerCase()
+            );
+          }
+
+          if (!user) {
+            return null;
+          }
+
+          const isValid = await bcrypt.compare(
+            credentials.password as string,
+            user.passwordHash
           );
-        }
 
-        if (!user) {
+          if (!isValid) {
+            return null;
+          }
+
+          return {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+          };
+        } catch (error) {
+          console.error("Authorization error:", error);
+          // Return null on error to prevent leaking error details
           return null;
         }
-
-        const isValid = await bcrypt.compare(
-          credentials.password as string,
-          user.passwordHash
-        );
-
-        if (!isValid) {
-          return null;
-        }
-
-        return {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-        };
       },
     }),
   ],
@@ -86,6 +98,12 @@ export async function registerUser(
   email: string,
   password: string
 ) {
+  if (!db) {
+    throw new Error(
+      "Database unavailable. SQLite is not supported on serverless platforms like Netlify. Please use a cloud database."
+    );
+  }
+
   const existingUser = await db
     .select()
     .from(users)
