@@ -7,7 +7,9 @@ import bcrypt from "bcryptjs";
 import { nanoid } from "nanoid";
 import * as dotenv from "dotenv";
 
-type Database = BetterSQLite3Database<typeof schema> | LibSQLDatabase<typeof schema>;
+type Database =
+  | BetterSQLite3Database<typeof schema>
+  | LibSQLDatabase<typeof schema>;
 
 // Load environment variables
 dotenv.config({ path: ".env.local" });
