@@ -1,37 +1,32 @@
-import Database from "better-sqlite3";
-import { drizzle } from "drizzle-orm/better-sqlite3";
+import { createClient } from "@libsql/client";
+import { drizzle } from "drizzle-orm/libsql";
 import * as schema from "./schema";
-import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 
-// Handle database initialization with error handling for serverless environments
-let sqlite: Database.Database | null = null;
+// Turso database connection
+// Make sure to set TURSO_DATABASE_URL and TURSO_AUTH_TOKEN in your environment variables
+const tursoUrl = process.env.TURSO_DATABASE_URL;
+const tursoAuthToken = process.env.TURSO_AUTH_TOKEN;
+
 let db: ReturnType<typeof drizzle<typeof schema>> | null = null;
 
 try {
-  // Try to use a writable location, fallback to /tmp in serverless
-  const dbPath =
-    process.env.DATABASE_PATH ||
-    (process.env.VERCEL || process.env.NETLIFY
-      ? "/tmp/data.sqlite"
-      : "data.sqlite");
+  if (!tursoUrl) {
+    console.warn(
+      "TURSO_DATABASE_URL not found. Database will not be available. " +
+        "Please set up Turso and add environment variables."
+    );
+  } else {
+    const client = createClient({
+      url: tursoUrl,
+      authToken: tursoAuthToken,
+    });
 
-  sqlite = new Database(dbPath);
-  db = drizzle(sqlite, { schema });
-
-  // Run migrations only once
-  try {
-    migrate(db, { migrationsFolder: "./drizzle" });
-    console.log("Database migrations completed");
-  } catch (error) {
-    // Migrations might have already run
-    if (error instanceof Error && !error.message.includes("already exists")) {
-      console.error("Migration error:", error);
-    }
+    db = drizzle(client, { schema });
+    console.log("Turso database connected successfully");
   }
 } catch (error) {
   console.error("Database initialization error:", error);
-  // In serverless environments, SQLite may not work
-  // The app will need to handle this gracefully
+  // The app will handle this gracefully by checking if db is null
 }
 
 export { db };
