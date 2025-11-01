@@ -133,7 +133,7 @@ export default function HomePage() {
                       </span>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 sm:gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {teams.map((team, index) => (
                       <TeamCard
                         key={index}
