@@ -12,6 +12,7 @@
     "db:seed": "tsx scripts/seed-users.ts"
   },
   "dependencies": {
+    "@eslint/eslintrc": "^3",
     "@hookform/resolvers": "^5.0.1",
     "@libsql/client": "^0.14.0",
     "@radix-ui/react-accordion": "^1.2.11",
@@ -28,8 +29,11 @@
     "better-sqlite3": "^12.4.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "dotenv": "^16.4.7",
     "drizzle-kit": "^0.31.5",
     "drizzle-orm": "^0.44.7",
+    "eslint": "^9",
+    "eslint-config-next": "15.3.2",
     "framer-motion": "^12.11.4",
     "lucide-react": "^0.510.0",
     "nanoid": "^5.1.6",
@@ -45,13 +49,9 @@
     "zod": "^3.24.4"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3",
     "@types/better-sqlite3": "^7.6.13",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "dotenv": "^16.4.7",
-    "eslint": "^9",
-    "eslint-config-next": "15.3.2",
     "tsx": "^4.19.2"
   }
 }
