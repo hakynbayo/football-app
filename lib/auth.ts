@@ -17,15 +17,18 @@ const configWithDb = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
+          console.log("❌ Auth: Missing credentials");
           return null;
         }
 
         try {
           // Check if database is available
           if (!db) {
-            console.error("Database not initialized");
+            console.error("❌ Auth: Database not initialized");
             throw new Error("Database unavailable");
           }
+
+          console.log("✅ Auth: Database available, attempting login for:", credentials.email);
 
           // Support both email and username login
           const emailOrUsername = credentials.email as string;
@@ -34,18 +37,26 @@ const configWithDb = {
             .from(users)
             .where(eq(users.email, emailOrUsername));
           
+          console.log(`📊 Auth: Found ${userResults.length} users by email`);
+          
           let user = userResults[0];
 
           // If not found by email, try by username
           if (!user) {
+            console.log("🔍 Auth: Searching by username...");
             const allUsers = await db.select().from(users);
+            console.log(`📊 Auth: Total users in database: ${allUsers.length}`);
             const foundUser = allUsers.find(
               (u) => u.name?.toLowerCase() === emailOrUsername.toLowerCase()
             );
             if (!foundUser) {
+              console.log("❌ Auth: User not found");
               return null;
             }
             user = foundUser;
+            console.log("✅ Auth: User found by username");
+          } else {
+            console.log("✅ Auth: User found by email");
           }
 
           const isValid = await bcrypt.compare(
@@ -54,9 +65,11 @@ const configWithDb = {
           );
 
           if (!isValid) {
+            console.log("❌ Auth: Invalid password");
             return null;
           }
 
+          console.log("✅ Auth: Login successful for:", user.email);
           return {
             id: user.id,
             name: user.name,
@@ -64,7 +77,7 @@ const configWithDb = {
             role: user.role,
           };
         } catch (error) {
-          console.error("Authorization error:", error);
+          console.error("❌ Auth: Authorization error:", error);
           // Return null on error to prevent leaking error details
           return null;
         }

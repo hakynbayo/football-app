@@ -4,62 +4,65 @@ import { db } from "@/lib/db";
 export const runtime = "nodejs";
 
 export async function GET() {
-  const checks: {
-    status: string;
-    timestamp: string;
-    environment: string;
-    database: string;
-    databaseType: string;
-    auth: string;
-  } = {
-    status: "ok",
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || "unknown",
-    database: "unknown",
-    databaseType: "unknown",
-    auth: "unknown",
-  };
+  let userCount = 0;
+  let queryError = "";
+  let databaseType = "unknown";
+  let databaseStatus = "unknown";
 
-  // Check database
+  // Check database with actual query
   try {
     if (!db) {
-      checks.database = "not_initialized";
-      checks.databaseType = "none";
+      databaseStatus = "not_initialized";
+      databaseType = "none";
     } else {
-      checks.database = "connected";
       // Determine which database is being used
       if (process.env.TURSO_DATABASE_URL && process.env.NODE_ENV === "production") {
-        checks.databaseType = "turso";
+        databaseType = "turso";
       } else {
-        checks.databaseType = "sqlite";
+        databaseType = "sqlite";
+      }
+      
+      // Try to actually query the database
+      try {
+        const { users } = await import("@/lib/db/schema");
+        const userResults = await db.select().from(users);
+        databaseStatus = "connected";
+        userCount = userResults.length;
+      } catch (error) {
+        databaseStatus = "connected_but_query_failed";
+        queryError = error instanceof Error ? error.message : "unknown";
       }
     }
   } catch (error) {
-    checks.database = `error: ${
-      error instanceof Error ? error.message : "unknown"
-    }`;
+    databaseStatus = `error: ${error instanceof Error ? error.message : "unknown"}`;
   }
 
   // Check auth secrets
-  if (process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET) {
-    checks.auth = "configured";
-  } else {
-    checks.auth = "missing_secret";
-    checks.status = "warning";
-  }
+  const authStatus = (process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET)
+    ? "configured"
+    : "missing_secret";
 
   // Check Turso config
   const tursoConfigured = !!(
     process.env.TURSO_DATABASE_URL && process.env.TURSO_AUTH_TOKEN
   );
 
+  const message = databaseType === "turso" 
+    ? "🚀 Connected to Turso cloud database" 
+    : databaseType === "sqlite"
+    ? "💾 Connected to local SQLite database"
+    : "⚠️ No database connection";
+
   return NextResponse.json({
-    ...checks,
+    status: authStatus === "missing_secret" ? "warning" : "ok",
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || "unknown",
+    database: databaseStatus,
+    databaseType,
+    auth: authStatus,
     turso: tursoConfigured ? "configured" : "not_configured",
-    message: checks.databaseType === "turso" 
-      ? "🚀 Connected to Turso cloud database" 
-      : checks.databaseType === "sqlite"
-      ? "💾 Connected to local SQLite database"
-      : "⚠️ No database connection",
+    userCount,
+    queryError: queryError || undefined,
+    message,
   });
 }
