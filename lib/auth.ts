@@ -28,7 +28,10 @@ const configWithDb = {
             throw new Error("Database unavailable");
           }
 
-          console.log("✅ Auth: Database available, attempting login for:", credentials.email);
+          console.log(
+            "✅ Auth: Database available, attempting login for:",
+            credentials.email
+          );
 
           // Support both email and username login
           const emailOrUsername = credentials.email as string;
@@ -36,9 +39,9 @@ const configWithDb = {
             .select()
             .from(users)
             .where(eq(users.email, emailOrUsername));
-          
+
           console.log(`📊 Auth: Found ${userResults.length} users by email`);
-          
+
           let user = userResults[0];
 
           // If not found by email, try by username
@@ -89,6 +92,7 @@ const configWithDb = {
 export const { handlers, signIn, signOut, auth } = NextAuth({
   ...configWithDb,
   secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
+  trustHost: true, // Required for Netlify deployment
   callbacks: {
     async session({ session, token }) {
       if (session.user) {
