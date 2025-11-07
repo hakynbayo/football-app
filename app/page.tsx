@@ -16,8 +16,13 @@ import {
   History,
   PlusCircle,
   Plus,
+  LogIn,
+  LogOut,
+  User
 } from "lucide-react";
 import { useState } from "react";
+import { signOut, useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 type TabType = "teams" | "matches" | "history" | "standings";
 
@@ -27,9 +32,34 @@ export default function HomePage() {
   const { stats, addMatchResult, clearMatchResults } = useMatchResults();
   const { teamOfWeek, saveTeamOfTheWeek, getTeamOfWeekByMonth } = useTeamOfTheWeek();
   const [activeTab, setActiveTab] = useState<TabType>("teams");
+  const { data: session, status } = useSession();
+  const router = useRouter();
 
-  // Temporarily disabled auth - everyone is admin
-  const isAdmin = true;
+  // Check if user is admin
+  const isAdmin = session?.user?.role === "admin";
+
+  const handleLogin = () => {
+    router.push("/login");
+  };
+
+  const handleLogout = async () => {
+    try {
+      const result = await signOut({
+        redirect: false,
+        callbackUrl: "/login"
+      });
+      // Force redirect after sign out
+      if (result) {
+        window.location.href = "/login";
+      } else {
+        router.push("/login");
+      }
+    } catch (error) {
+      console.error("Logout error:", error);
+      // Force redirect on error
+      router.push("/login");
+    }
+  };
 
   const handleGenerateTeams = (teams: Team[]) => {
     setTeams(teams);
@@ -90,6 +120,39 @@ export default function HomePage() {
               </p>
             </div>
             <div className="flex items-center gap-2">
+              {status === "loading" ? (
+                <div className="h-9 w-9 rounded-full bg-slate-200 dark:bg-slate-700 animate-pulse" />
+              ) : session ? (
+                <>
+                  <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-700 rounded-lg">
+                    <User className="w-4 h-4 text-slate-600 dark:text-slate-300" />
+                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                      {session.user?.name || session.user?.email}
+                    </span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${session.user?.role === "admin"
+                      ? "bg-blue-600 text-white"
+                      : "bg-green-600 text-white"
+                      }`}>
+                      {session.user?.role === "admin" ? "Admin" : "User"}
+                    </span>
+                  </div>
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors text-sm font-medium"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span className="hidden sm:inline">Logout</span>
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={handleLogin}
+                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg transition-colors text-sm font-medium"
+                >
+                  <LogIn className="w-4 h-4" />
+                  <span className="hidden sm:inline">Login</span>
+                </button>
+              )}
               <ResetTeamsButton />
             </div>
           </div>
@@ -120,6 +183,11 @@ export default function HomePage() {
                 </div>
               )}
 
+              {!isAdmin && teams.length === 0 && (
+                <div className="bg-slate-100 dark:bg-slate-700 rounded-xl p-6 text-center">
+                  <p className="text-muted-foreground">No teams available. Please contact an admin to generate teams.</p>
+                </div>
+              )}
 
               {teams.length > 0 && (
                 <><div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
@@ -165,22 +233,28 @@ export default function HomePage() {
           {/* Matches Tab */}
           {activeTab === "matches" && (
             <div className="space-y-6 animate-in slide-in-from-right duration-200">
-              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
-                    <PlusCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
+              {isAdmin ? (
+                <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
+                      <PlusCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
+                    </div>
+                    <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
+                      Enter Match Result
+                    </h2>
                   </div>
-                  <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
-                    Enter Match Result
-                  </h2>
+                  <MatchInput
+                    teams={teams.map((t) => t.name)}
+                    onSubmit={(teamA, teamB, scoreA, scoreB) =>
+                      addMatchResult(teamA, teamB, Number(scoreA), Number(scoreB))
+                    }
+                  />
                 </div>
-                <MatchInput
-                  teams={teams.map((t) => t.name)}
-                  onSubmit={(teamA, teamB, scoreA, scoreB) =>
-                    addMatchResult(teamA, teamB, Number(scoreA), Number(scoreB))
-                  }
-                />
-              </div>
+              ) : (
+                <div className="bg-slate-100 dark:bg-slate-700 rounded-xl p-6 text-center">
+                  <p className="text-muted-foreground">Only admins can enter match results.</p>
+                </div>
+              )}
             </div>
           )}
 

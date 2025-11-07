@@ -2,6 +2,7 @@ import { FC, useState } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Team } from "@/types/team";
 import { Users2, Edit2, X } from "lucide-react";
+import { useSession } from "next-auth/react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -93,8 +94,8 @@ const getTeamColor = (index: number) => {
 };
 
 const TeamCard: FC<TeamCardProps> = ({ team, teamIndex, onUpdateTeam, onDeleteTeam }) => {
-  // Auth disabled - everyone is admin
-  const isAdmin = true;
+  const { data: session } = useSession();
+  const isAdmin = session?.user?.role === "admin";
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editedName, setEditedName] = useState("");
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
