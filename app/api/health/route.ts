@@ -4,11 +4,12 @@ import { db } from "@/lib/db";
 export const runtime = "nodejs";
 
 export async function GET() {
-  const checks = {
+  const checks: any = {
     status: "ok",
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || "unknown",
     database: "unknown",
+    databaseType: "unknown",
     auth: "unknown",
   };
 
@@ -16,8 +17,15 @@ export async function GET() {
   try {
     if (!db) {
       checks.database = "not_initialized";
+      checks.databaseType = "none";
     } else {
       checks.database = "connected";
+      // Determine which database is being used
+      if (process.env.TURSO_DATABASE_URL && process.env.NODE_ENV === "production") {
+        checks.databaseType = "turso";
+      } else {
+        checks.databaseType = "sqlite";
+      }
     }
   } catch (error) {
     checks.database = `error: ${
@@ -41,5 +49,10 @@ export async function GET() {
   return NextResponse.json({
     ...checks,
     turso: tursoConfigured ? "configured" : "not_configured",
+    message: checks.databaseType === "turso" 
+      ? "🚀 Connected to Turso cloud database" 
+      : checks.databaseType === "sqlite"
+      ? "💾 Connected to local SQLite database"
+      : "⚠️ No database connection",
   });
 }
