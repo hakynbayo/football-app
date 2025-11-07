@@ -29,22 +29,23 @@ const configWithDb = {
 
           // Support both email and username login
           const emailOrUsername = credentials.email as string;
-          let user = await db
+          const userResults = await db
             .select()
             .from(users)
-            .where(eq(users.email, emailOrUsername))
-            .get();
+            .where(eq(users.email, emailOrUsername));
+          
+          let user = userResults[0];
 
           // If not found by email, try by username
           if (!user) {
-            const allUsers = await db.select().from(users).all();
-            user = allUsers.find(
+            const allUsers = await db.select().from(users);
+            const foundUser = allUsers.find(
               (u) => u.name?.toLowerCase() === emailOrUsername.toLowerCase()
             );
-          }
-
-          if (!user) {
-            return null;
+            if (!foundUser) {
+              return null;
+            }
+            user = foundUser;
           }
 
           const isValid = await bcrypt.compare(
@@ -110,13 +111,12 @@ export async function registerUser(
     );
   }
 
-  const existingUser = await db
+  const existingUsers = await db
     .select()
     .from(users)
-    .where(eq(users.email, email))
-    .get();
+    .where(eq(users.email, email));
 
-  if (existingUser) {
+  if (existingUsers.length > 0) {
     throw new Error("User already exists");
   }
 
