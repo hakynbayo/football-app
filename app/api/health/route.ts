@@ -4,7 +4,14 @@ import { db } from "@/lib/db";
 export const runtime = "nodejs";
 
 export async function GET() {
-  const checks: any = {
+  const checks: {
+    status: string;
+    timestamp: string;
+    environment: string;
+    database: string;
+    databaseType: string;
+    auth: string;
+  } = {
     status: "ok",
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || "unknown",
