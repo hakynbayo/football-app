@@ -20,7 +20,7 @@ import {
   LogOut,
   User
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
@@ -34,6 +34,31 @@ export default function HomePage() {
   const [activeTab, setActiveTab] = useState<TabType>("teams");
   const { data: session, status } = useSession();
   const router = useRouter();
+
+  // Check database connection on mount
+  useEffect(() => {
+    const checkConnection = async () => {
+      try {
+        const response = await fetch('/api/health');
+        const data = await response.json();
+        
+        if (data.turso === "configured" && data.database === "connected") {
+          console.log("✅ TURSO DATABASE CONNECTED");
+          console.log("📊 Database Status:", data);
+        } else if (data.database === "connected") {
+          console.log("✅ LOCAL SQLITE CONNECTED");
+          console.log("📊 Database Status:", data);
+        } else {
+          console.warn("⚠️ DATABASE NOT CONNECTED");
+          console.log("📊 Database Status:", data);
+        }
+      } catch (error) {
+        console.error("❌ Failed to check database connection:", error);
+      }
+    };
+
+    checkConnection();
+  }, []);
 
   // Check if user is admin
   const isAdmin = session?.user?.role === "admin";
