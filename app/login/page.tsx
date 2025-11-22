@@ -21,18 +21,27 @@ export default function LoginPage() {
         setLoading(true);
 
         try {
+            console.log("🔐 Attempting login for:", email);
             const result = await signIn("credentials", {
                 email,
                 password,
                 redirect: false,
             });
 
+            console.log("📊 Login result:", result);
+
             if (result?.error) {
+                console.error("❌ Login error:", result.error);
                 setError("Invalid username/email or password");
-            } else {
+            } else if (result?.ok) {
+                console.log("✅ Login successful, redirecting...");
                 router.push("/");
+            } else {
+                console.warn("⚠️ Unexpected result:", result);
+                setError("Login failed. Please try again.");
             }
-        } catch {
+        } catch (error) {
+            console.error("❌ Login exception:", error);
             setError("An error occurred. Please try again.");
         } finally {
             setLoading(false);

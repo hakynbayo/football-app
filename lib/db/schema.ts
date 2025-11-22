@@ -9,51 +9,38 @@ export const users = sqliteTable("users", {
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
-export const sessions = sqliteTable("sessions", {
+// Shared app data tables (all users see the same data)
+export const appTeams = sqliteTable("app_teams", {
   id: text("id").primaryKey(),
-  userId: text("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
-  token: text("token").notNull().unique(),
-  ipAddress: text("ip_address"),
-  userAgent: text("user_agent"),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
-});
-
-export const teams = sqliteTable("teams", {
-  id: text("id").primaryKey(),
-  userId: text("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  name: text("name").notNull(),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  data: text("data").notNull(), // JSON string of Team[]
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+  updatedBy: text("updated_by"), // User ID who last updated
 });
 
-export const players = sqliteTable("players", {
+export const appMatches = sqliteTable("app_matches", {
   id: text("id").primaryKey(),
-  teamId: text("team_id")
-    .notNull()
-    .references(() => teams.id, { onDelete: "cascade" }),
-  name: text("name").notNull(),
-  position: integer("position").notNull(),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  data: text("data").notNull(), // JSON string of MatchResult[]
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+  updatedBy: text("updated_by"), // User ID who last updated
 });
 
-export const matches = sqliteTable("matches", {
+export const appStats = sqliteTable("app_stats", {
   id: text("id").primaryKey(),
-  userId: text("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  teamAId: text("team_a_id")
-    .notNull()
-    .references(() => teams.id, { onDelete: "cascade" }),
-  teamBId: text("team_b_id")
-    .notNull()
-    .references(() => teams.id, { onDelete: "cascade" }),
-  scoreA: integer("score_a").notNull(),
-  scoreB: integer("score_b").notNull(),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  data: text("data").notNull(), // JSON string of TeamStats[]
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+  updatedBy: text("updated_by"), // User ID who last updated
+});
+
+export const appTeamOfTheWeek = sqliteTable("app_team_of_week", {
+  id: text("id").primaryKey(),
+  data: text("data"), // JSON string of TeamOfTheWeek | null
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+  updatedBy: text("updated_by"), // User ID who last updated
+});
+
+export const appTeamOfTheWeekHistory = sqliteTable("app_team_of_week_history", {
+  id: text("id").primaryKey(),
+  data: text("data").notNull(), // JSON string of TeamOfTheWeek[]
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+  updatedBy: text("updated_by"), // User ID who last updated
 });

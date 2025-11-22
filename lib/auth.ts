@@ -95,16 +95,23 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   trustHost: true, // Required for Netlify deployment
   callbacks: {
     async session({ session, token }) {
+      console.log(
+        "🔄 Session callback - Creating session for user:",
+        token.sub
+      );
       if (session.user) {
         session.user.id = token.sub!;
         session.user.role = token.role as string;
       }
+      console.log("✅ Session created:", session);
       return session;
     },
     async jwt({ token, user }) {
+      console.log("🔄 JWT callback - Token:", token?.sub, "User:", user?.id);
       if (user) {
         token.sub = user.id;
         token.role = user.role;
+        console.log("✅ JWT token updated with user data");
       }
       return token;
     },

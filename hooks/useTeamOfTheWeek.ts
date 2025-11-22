@@ -1,27 +1,51 @@
 import { useEffect, useState } from "react";
 import { TeamOfTheWeek, Team, TeamStats } from "@/types/team";
-import { getFromStorage, saveToStorage, STORAGE_KEYS } from "@/lib/storage";
 
 export const useTeamOfTheWeek = () => {
   const [teamOfWeek, setTeamOfWeek] = useState<TeamOfTheWeek | null>(null);
   const [teamOfWeekHistory, setTeamOfWeekHistory] = useState<TeamOfTheWeek[]>(
     []
   );
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const savedTeamOfWeek = getFromStorage<TeamOfTheWeek | null>(
-      STORAGE_KEYS.TEAM_OF_THE_WEEK,
-      null
-    );
-    const savedHistory = getFromStorage<TeamOfTheWeek[]>(
-      STORAGE_KEYS.TEAM_OF_THE_WEEK_HISTORY,
-      []
-    );
-    setTeamOfWeek(savedTeamOfWeek);
-    setTeamOfWeekHistory(savedHistory);
+    const fetchTeamOfTheWeek = async () => {
+      try {
+        const response = await fetch("/api/data/team-of-the-week?month=all");
+        if (response.ok) {
+          const result = await response.json();
+          const allData = result.data || {};
+          
+          // Convert month-keyed object to array
+          const history: TeamOfTheWeek[] = Object.values(allData) as TeamOfTheWeek[];
+          
+          // Sort by month (most recent first)
+          history.sort((a, b) => {
+            if (a.month > b.month) return -1;
+            if (a.month < b.month) return 1;
+            return 0;
+          });
+          
+          setTeamOfWeekHistory(history);
+          
+          // Set the most recent as current
+          if (history.length > 0) {
+            setTeamOfWeek(history[0]);
+          } else {
+            setTeamOfWeek(null);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching team of the week:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTeamOfTheWeek();
   }, []);
 
-  const saveTeamOfTheWeek = (team: Team, stats: TeamStats[]) => {
+  const saveTeamOfTheWeek = async (team: Team, stats: TeamStats[]) => {
     const now = new Date();
     const dateStr = now.toLocaleDateString("en-US", {
       year: "numeric",
@@ -38,24 +62,44 @@ export const useTeamOfTheWeek = () => {
       month: monthStr,
     };
 
+    // Update local state immediately
     setTeamOfWeek(newTeamOfWeek);
-    saveToStorage(STORAGE_KEYS.TEAM_OF_THE_WEEK, newTeamOfWeek);
-
-    // Add to history
-    const updatedHistory = [newTeamOfWeek, ...teamOfWeekHistory];
+    const updatedHistory = [newTeamOfWeek, ...teamOfWeekHistory.filter(tw => tw.month !== monthStr)];
     setTeamOfWeekHistory(updatedHistory);
-    saveToStorage(STORAGE_KEYS.TEAM_OF_THE_WEEK_HISTORY, updatedHistory);
+
+    // Save to API
+    try {
+      const response = await fetch("/api/data/team-of-the-week", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ month: monthStr, data: newTeamOfWeek }),
+      });
+      if (!response.ok) {
+        console.error("Error saving team of the week:", await response.text());
+      }
+    } catch (error) {
+      console.error("Error saving team of the week:", error);
+    }
   };
 
   const getTeamOfWeekByMonth = (month: string): TeamOfTheWeek[] => {
     return teamOfWeekHistory.filter((tw) => tw.month === month);
   };
 
-  const clearTeamOfTheWeek = () => {
+  const clearTeamOfTheWeek = async () => {
     setTeamOfWeek(null);
     setTeamOfWeekHistory([]);
-    localStorage.removeItem(STORAGE_KEYS.TEAM_OF_THE_WEEK);
-    localStorage.removeItem(STORAGE_KEYS.TEAM_OF_THE_WEEK_HISTORY);
+    
+    // Clear all months from API
+    try {
+      await fetch("/api/data/team-of-the-week", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ month: "all", data: {} }),
+      });
+    } catch (error) {
+      console.error("Error clearing team of the week:", error);
+    }
   };
 
   return {
@@ -64,6 +108,7 @@ export const useTeamOfTheWeek = () => {
     saveTeamOfTheWeek,
     getTeamOfWeekByMonth,
     clearTeamOfTheWeek,
+    loading,
   };
 };
 

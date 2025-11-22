@@ -1,27 +1,39 @@
 import { useEffect, useState } from "react";
 import { MatchResult, TeamStats } from "@/types/team";
-import { getFromStorage, STORAGE_KEYS, saveToStorage } from "@/lib/storage";
 
 export const useMatchResults = () => {
     const [matches, setMatches] = useState<MatchResult[]>([]);
     const [stats, setStats] = useState<TeamStats[]>([]);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const savedMatches = getFromStorage<MatchResult[]>(STORAGE_KEYS.MATCHES, []);
-        const savedStats = getFromStorage<TeamStats[]>(STORAGE_KEYS.STATS, []);
-        setMatches(savedMatches);
-        setStats(savedStats);
+        const fetchData = async () => {
+            try {
+                const [matchesRes, statsRes] = await Promise.all([
+                    fetch("/api/data/matches"),
+                    fetch("/api/data/stats"),
+                ]);
+
+                if (matchesRes.ok) {
+                    const matchesData = await matchesRes.json();
+                    setMatches(matchesData.matches || []);
+                }
+
+                if (statsRes.ok) {
+                    const statsData = await statsRes.json();
+                    setStats(statsData.stats || []);
+                }
+            } catch (error) {
+                console.error("Error fetching matches/stats:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
     }, []);
 
-    const addMatchResult = (teamA: string, teamB: string, scoreA: number, scoreB: number) => {
-        const newMatch: MatchResult = { teamA, teamB, scoreA, scoreB };
-        const updatedMatches = [...matches, newMatch];
-        setMatches(updatedMatches);
-        saveToStorage(STORAGE_KEYS.MATCHES, updatedMatches);
-        updateStatsFromMatches(updatedMatches);
-    };
-
-    const updateStatsFromMatches = (matchList: MatchResult[]) => {
+    const updateStatsFromMatches = async (matchList: MatchResult[]) => {
         const newStats: TeamStats[] = [];
 
         const updateTeam = (teamName: string, update: Partial<TeamStats>) => {
@@ -59,22 +71,74 @@ export const useMatchResults = () => {
         }
 
         setStats(newStats);
-        saveToStorage(STORAGE_KEYS.STATS, newStats);
+        try {
+            await fetch("/api/data/stats", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ stats: newStats }),
+            });
+        } catch (error) {
+            console.error("Error saving stats:", error);
+        }
     };
 
+    const addMatchResult = async (teamA: string, teamB: string, scoreA: number, scoreB: number) => {
+        const newMatch: MatchResult = { teamA, teamB, scoreA, scoreB };
+        const updatedMatches = [...matches, newMatch];
+        setMatches(updatedMatches);
+        
+        try {
+            const response = await fetch("/api/data/matches", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ matches: updatedMatches }),
+            });
+            if (response.ok) {
+                await updateStatsFromMatches(updatedMatches);
+            }
+        } catch (error) {
+            console.error("Error saving match:", error);
+        }
+    };
 
-    const removeMatch = (index: number) => {
+    const removeMatch = async (index: number) => {
         const updatedMatches = matches.filter((_, i) => i !== index);
         setMatches(updatedMatches);
-        saveToStorage(STORAGE_KEYS.MATCHES, updatedMatches);
-        updateStatsFromMatches(updatedMatches); // recalculate stats
+        
+        try {
+            const response = await fetch("/api/data/matches", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ matches: updatedMatches }),
+            });
+            if (response.ok) {
+                await updateStatsFromMatches(updatedMatches);
+            }
+        } catch (error) {
+            console.error("Error removing match:", error);
+        }
     };
 
-    const clearMatchResults = () => {
+    const clearMatchResults = async () => {
         setMatches([]);
-        saveToStorage(STORAGE_KEYS.MATCHES, []);
         setStats([]);
-        saveToStorage(STORAGE_KEYS.STATS, []);
+        
+        try {
+            await Promise.all([
+                fetch("/api/data/matches", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ matches: [] }),
+                }),
+                fetch("/api/data/stats", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ stats: [] }),
+                }),
+            ]);
+        } catch (error) {
+            console.error("Error clearing matches/stats:", error);
+        }
     };
 
     return {
@@ -83,5 +147,6 @@ export const useMatchResults = () => {
         addMatchResult,
         removeMatch,
         clearMatchResults,
+        loading,
     };
 };
