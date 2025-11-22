@@ -16,15 +16,27 @@ export const useMatchResults = () => {
 
                 if (matchesRes.ok) {
                     const matchesData = await matchesRes.json();
-                    setMatches(matchesData.matches || []);
+                    const matches = matchesData.matches || [];
+                    setMatches(matches);
+                    console.log("✅ Matches loaded from database:", matches.length);
+                } else if (matchesRes.status === 401) {
+                    console.warn("⚠️ Not authenticated - cannot fetch matches");
+                } else {
+                    console.error("❌ Error fetching matches:", matchesRes.status);
                 }
 
                 if (statsRes.ok) {
                     const statsData = await statsRes.json();
-                    setStats(statsData.stats || []);
+                    const stats = statsData.stats || [];
+                    setStats(stats);
+                    console.log("✅ Stats loaded from database:", stats.length);
+                } else if (statsRes.status === 401) {
+                    console.warn("⚠️ Not authenticated - cannot fetch stats");
+                } else {
+                    console.error("❌ Error fetching stats:", statsRes.status);
                 }
             } catch (error) {
-                console.error("Error fetching matches/stats:", error);
+                console.error("❌ Error fetching matches/stats:", error);
             } finally {
                 setLoading(false);
             }
@@ -94,10 +106,15 @@ export const useMatchResults = () => {
                 body: JSON.stringify({ matches: updatedMatches }),
             });
             if (response.ok) {
+                console.log("✅ Match saved to database");
                 await updateStatsFromMatches(updatedMatches);
+            } else if (response.status === 401) {
+                console.error("❌ Not authenticated - cannot save match");
+            } else {
+                console.error("❌ Error saving match:", response.status);
             }
         } catch (error) {
-            console.error("Error saving match:", error);
+            console.error("❌ Error saving match:", error);
         }
     };
 

@@ -16,9 +16,15 @@ export const useTeams = () => {
             players: Array.isArray(team.players) ? team.players : [],
           }));
           setTeams(valid);
+          console.log("✅ Teams loaded from database:", valid.length);
+        } else if (response.status === 401) {
+          console.warn("⚠️ Not authenticated - cannot fetch teams");
+        } else {
+          const errorText = await response.text();
+          console.error("❌ Error fetching teams:", response.status, errorText);
         }
       } catch (error) {
-        console.error("Error fetching teams:", error);
+        console.error("❌ Error fetching teams:", error);
       } finally {
         setLoading(false);
       }
@@ -35,11 +41,16 @@ export const useTeams = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ teams: newTeams }),
       });
-      if (!response.ok) {
-        console.error("Error saving teams:", await response.text());
+      if (response.ok) {
+        console.log("✅ Teams saved to database:", newTeams.length);
+      } else if (response.status === 401) {
+        console.error("❌ Not authenticated - cannot save teams");
+      } else {
+        const errorText = await response.text();
+        console.error("❌ Error saving teams:", response.status, errorText);
       }
     } catch (error) {
-      console.error("Error saving teams:", error);
+      console.error("❌ Error saving teams:", error);
     }
   };
 

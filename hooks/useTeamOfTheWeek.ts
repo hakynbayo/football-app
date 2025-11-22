@@ -27,6 +27,7 @@ export const useTeamOfTheWeek = () => {
           });
           
           setTeamOfWeekHistory(history);
+          console.log("✅ Team of the week loaded from database:", history.length);
           
           // Set the most recent as current
           if (history.length > 0) {
@@ -34,9 +35,13 @@ export const useTeamOfTheWeek = () => {
           } else {
             setTeamOfWeek(null);
           }
+        } else if (response.status === 401) {
+          console.warn("⚠️ Not authenticated - cannot fetch team of the week");
+        } else {
+          console.error("❌ Error fetching team of the week:", response.status);
         }
       } catch (error) {
-        console.error("Error fetching team of the week:", error);
+        console.error("❌ Error fetching team of the week:", error);
       } finally {
         setLoading(false);
       }
@@ -74,11 +79,16 @@ export const useTeamOfTheWeek = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ month: monthStr, data: newTeamOfWeek }),
       });
-      if (!response.ok) {
-        console.error("Error saving team of the week:", await response.text());
+      if (response.ok) {
+        console.log("✅ Team of the week saved to database");
+      } else if (response.status === 401) {
+        console.error("❌ Not authenticated - cannot save team of the week");
+      } else {
+        const errorText = await response.text();
+        console.error("❌ Error saving team of the week:", response.status, errorText);
       }
     } catch (error) {
-      console.error("Error saving team of the week:", error);
+      console.error("❌ Error saving team of the week:", error);
     }
   };
 
