@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { appTeamOfTheWeek } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
+import { TeamOfTheWeek } from "@/types/team";
 
 export const runtime = "nodejs";
 
@@ -17,7 +18,10 @@ export async function GET(request: NextRequest) {
     }
 
     if (!db) {
-      return NextResponse.json({ error: "Database unavailable" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Database unavailable" },
+        { status: 500 }
+      );
     }
 
     const { searchParams } = new URL(request.url);
@@ -33,7 +37,7 @@ export async function GET(request: NextRequest) {
     }
 
     const allData = JSON.parse(result[0].data || "{}");
-    
+
     if (month === "all") {
       return NextResponse.json({ data: allData || {} });
     }
@@ -57,16 +61,16 @@ export async function POST(request: NextRequest) {
     }
 
     if (!db) {
-      return NextResponse.json({ error: "Database unavailable" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Database unavailable" },
+        { status: 500 }
+      );
     }
 
     const { month, data: monthData } = await request.json();
 
     if (!month) {
-      return NextResponse.json(
-        { error: "Month is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Month is required" }, { status: 400 });
     }
 
     const now = new Date();
@@ -77,9 +81,9 @@ export async function POST(request: NextRequest) {
       .from(appTeamOfTheWeek)
       .where(eq(appTeamOfTheWeek.id, TEAM_OF_THE_WEEK_KEY));
 
-    let allData: Record<string, any> = {};
+    let allData: Record<string, TeamOfTheWeek> = {};
     if (existing.length > 0 && existing[0].data) {
-      allData = JSON.parse(existing[0].data);
+      allData = JSON.parse(existing[0].data) as Record<string, TeamOfTheWeek>;
     }
 
     // Update the specific month
@@ -114,4 +118,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
