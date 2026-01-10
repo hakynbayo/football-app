@@ -55,23 +55,23 @@ export default function RegisterPage() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 px-4">
+        <div className="min-h-screen flex items-center justify-center bg-white dark:bg-black px-4">
             <div className="w-full max-w-md">
-                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-8">
+                <div className="bg-gray-50 dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-8">
                     <div className="text-center mb-8">
-                        <div className="inline-flex items-center justify-center w-16 h-16 bg-purple-100 dark:bg-purple-900 rounded-full mb-4">
-                            <UserPlus className="w-8 h-8 text-purple-600 dark:text-purple-400" />
+                        <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full mb-4">
+                            <UserPlus className="w-8 h-8 text-black dark:text-white" />
                         </div>
-                        <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
+                        <h1 className="text-3xl font-bold text-black dark:text-white mb-2">
                             Create Account
                         </h1>
-                        <p className="text-sm text-muted-foreground">Sign up to get started</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">Sign up to get started</p>
                     </div>
 
                     {error && (
-                        <div className="mb-6 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg p-4 flex items-center gap-3">
-                            <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0" />
-                            <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
+                        <div className="mb-6 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 flex items-center gap-3">
+                            <AlertCircle className="w-5 h-5 text-black dark:text-white flex-shrink-0" />
+                            <p className="text-sm text-black dark:text-white">{error}</p>
                         </div>
                     )}
 
@@ -131,18 +131,18 @@ export default function RegisterPage() {
                         <Button
                             type="submit"
                             disabled={loading}
-                            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 h-11"
+                            className="w-full bg-black hover:bg-gray-800 text-white dark:bg-white dark:hover:bg-gray-200 dark:text-black h-11"
                         >
                             {loading ? "Creating account..." : "Sign Up"}
                         </Button>
                     </form>
 
                     <div className="mt-6 text-center">
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
                             Already have an account?{" "}
                             <a
                                 href="/login"
-                                className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
+                                className="text-black dark:text-white hover:underline font-medium"
                             >
                                 Sign in
                             </a>

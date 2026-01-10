@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
-import { MatchResult, TeamStats } from "@/types/team";
+import { useEffect, useState, useRef } from "react";
+import { MatchResult, TeamStats, Team } from "@/types/team";
 
-export const useMatchResults = () => {
+export const useMatchResults = (teams: Team[] = []) => {
     const [matches, setMatches] = useState<MatchResult[]>([]);
     const [stats, setStats] = useState<TeamStats[]>([]);
     const [loading, setLoading] = useState(true);
+    const isInitialLoad = useRef(true);
+    const previousTeamsRef = useRef<Team[]>([]);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -39,14 +41,93 @@ export const useMatchResults = () => {
                 console.error("❌ Error fetching matches/stats:", error);
             } finally {
                 setLoading(false);
+                isInitialLoad.current = false;
             }
         };
 
         fetchData();
     }, []);
 
+    // Initialize stats for all teams when teams change and reset matches/stats
+    useEffect(() => {
+        if (teams.length > 0 && !isInitialLoad.current) {
+            // Check if teams have actually changed (not just reloaded)
+            const previousTeams = previousTeamsRef.current;
+            const teamsChanged = teams.length !== previousTeams.length || 
+                teams.some((team, index) => 
+                    !previousTeams[index] || 
+                    team.name !== previousTeams[index].name ||
+                    JSON.stringify(team.players) !== JSON.stringify(previousTeams[index].players)
+                );
+
+            if (teamsChanged) {
+                // Reset matches and stats when new teams are generated
+                setMatches([]);
+                
+                // Create fresh stats for all teams with 0 values
+                const freshStats: TeamStats[] = teams.map(team => ({
+                    name: team.name,
+                    played: 0,
+                    wins: 0,
+                    draws: 0,
+                    losses: 0,
+                    goals: 0,
+                    points: 0
+                }));
+
+                setStats(freshStats);
+                
+                // Save fresh data to database
+                Promise.all([
+                    fetch("/api/data/matches", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ matches: [] }),
+                    }),
+                    fetch("/api/data/stats", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ stats: freshStats }),
+                    })
+                ]).catch(error => {
+                    console.error("Error resetting matches/stats:", error);
+                });
+
+                console.log("🔄 Table reset with new teams:", teams.length);
+            } else if (stats.length === 0) {
+                // If teams haven't changed but we don't have stats, initialize them
+                const initialStats: TeamStats[] = teams.map(team => ({
+                    name: team.name,
+                    played: 0,
+                    wins: 0,
+                    draws: 0,
+                    losses: 0,
+                    goals: 0,
+                    points: 0
+                }));
+
+                // Only set stats if they're empty, don't overwrite existing ones
+                setStats(prevStats => prevStats.length === 0 ? initialStats : prevStats);
+            }
+        }
+        
+        // Update the previous teams reference
+        previousTeamsRef.current = teams;
+    }, [teams, stats.length]);
+
     const updateStatsFromMatches = async (matchList: MatchResult[]) => {
-        const newStats: TeamStats[] = [];
+        // Start with initialized stats for all teams
+        const initialStats: TeamStats[] = teams.map(team => ({
+            name: team.name,
+            played: 0,
+            wins: 0,
+            draws: 0,
+            losses: 0,
+            goals: 0,
+            points: 0
+        }));
+
+        const newStats: TeamStats[] = [...initialStats];
 
         const updateTeam = (teamName: string, update: Partial<TeamStats>) => {
             let team = newStats.find((t) => t.name === teamName);
@@ -68,17 +149,17 @@ export const useMatchResults = () => {
             const { teamA, teamB, scoreA, scoreB } = match;
 
             if (scoreA > scoreB) {
-                // Team A wins: gains its own goals, Team B loses: subtracts opponent's goals
-                updateTeam(teamA, { wins: 1, points: 3, goals: scoreA });
-                updateTeam(teamB, { losses: 1, goals: -scoreA });
+                // Team A wins
+                updateTeam(teamA, { wins: 1, points: 3, goals: scoreA - scoreB });
+                updateTeam(teamB, { losses: 1, goals: scoreB - scoreA });
             } else if (scoreB > scoreA) {
-                // Team B wins: gains its own goals, Team A loses: subtracts opponent's goals
-                updateTeam(teamB, { wins: 1, points: 3, goals: scoreB });
-                updateTeam(teamA, { losses: 1, goals: -scoreB });
+                // Team B wins
+                updateTeam(teamB, { wins: 1, points: 3, goals: scoreB - scoreA });
+                updateTeam(teamA, { losses: 1, goals: scoreA - scoreB });
             } else {
-                // Draw: no goal change
-                updateTeam(teamA, { draws: 1, points: 1 });
-                updateTeam(teamB, { draws: 1, points: 1 });
+                // Draw
+                updateTeam(teamA, { draws: 1, points: 1, goals: scoreA - scoreB });
+                updateTeam(teamB, { draws: 1, points: 1, goals: scoreB - scoreA });
             }
         }
 
