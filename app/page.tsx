@@ -9,6 +9,7 @@ import TeamOfTheWeekComponent from "@/components/shared/TeamOfTheWeek";
 import { useMatchResults } from "@/hooks/useMatchResult";
 import { useTeams } from "@/hooks/useTeams";
 import { useTeamOfTheWeek } from "@/hooks/useTeamOfTheWeek";
+import { manualSync } from "@/lib/dataSync";
 import { Team } from "@/types/team";
 import {
   Users,
@@ -18,16 +19,19 @@ import {
   Plus,
   LogIn,
   LogOut,
+  RefreshCw,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 
 type TabType = "teams" | "matches" | "history" | "standings";
 
 export default function HomePage() {
-  const { teams, setTeams } = useTeams();
+  const { teams, setTeams, refreshTeams } = useTeams();
   const [playerText, setPlayerText] = useState("");
+  const queryClient = useQueryClient();
   const { stats, matches, addMatchResult, removeMatch, clearMatchResults } = useMatchResults(teams);
   const { teamOfWeek, saveTeamOfTheWeek, getTeamOfWeekByMonth } = useTeamOfTheWeek();
   const [activeTab, setActiveTab] = useState<TabType>("teams");
@@ -149,6 +153,17 @@ export default function HomePage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              {/* Sync Button */}
+              {session && (
+                <button
+                  onClick={() => manualSync(queryClient)}
+                  className="p-2 bg-blue-100 hover:bg-blue-200 dark:bg-blue-900 dark:hover:bg-blue-800 text-blue-600 dark:text-blue-400 rounded-lg transition-colors"
+                  title="Sync data across devices"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                </button>
+              )}
+              
               {status === "loading" ? (
                 <div className="h-8 w-8 rounded-full bg-gray-200 dark:bg-gray-800 animate-pulse" />
               ) : session ? (

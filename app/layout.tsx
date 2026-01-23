@@ -14,8 +14,14 @@ const inter = Inter({ subsets: ["latin"] });
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 5,
-      refetchOnWindowFocus: false,
+      staleTime: 1000 * 30, // Data is fresh for 30 seconds
+      gcTime: 1000 * 60 * 5, // Keep in cache for 5 minutes
+      refetchOnWindowFocus: true, // Refetch when window gains focus
+      refetchOnReconnect: true, // Refetch when reconnecting
+      retry: 2,
+      refetchInterval: 1000 * 60, // Auto-refetch every minute
+    },
+    mutations: {
       retry: 1,
     },
   },

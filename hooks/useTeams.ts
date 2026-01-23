@@ -1,98 +1,151 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Team } from "@/types/team";
 
+const TEAMS_QUERY_KEY = ["teams"];
+
 export const useTeams = () => {
-  const [teams, setTeams] = useState<Team[]>([]);
-  const [loading, setLoading] = useState(true);
   const { data: session, status } = useSession();
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    const fetchTeams = async () => {
-      // Don't fetch if session is still loading
-      if (status === "loading") {
-        return;
-      }
-
-      // Don't fetch if not authenticated
-      if (status === "unauthenticated" || !session?.user) {
-        console.warn("⚠️ Not authenticated - cannot fetch teams");
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const response = await fetch("/api/data/teams");
-        if (response.ok) {
-          const data = await response.json();
-          const valid = (data.teams || []).map((team: Team) => ({
-            ...team,
-            players: Array.isArray(team.players) ? team.players : [],
-          }));
-          setTeams(valid);
-          console.log("✅ Teams loaded from database:", valid.length);
-        } else if (response.status === 401) {
-          console.warn("⚠️ Not authenticated - cannot fetch teams");
-        } else {
-          const errorText = await response.text();
-          console.error("❌ Error fetching teams:", response.status, errorText);
+  // Fetch teams using React Query
+  const {
+    data: teams = [],
+    isLoading: loading,
+    error,
+    refetch
+  } = useQuery({
+    queryKey: TEAMS_QUERY_KEY,
+    queryFn: async (): Promise<Team[]> => {
+      const response = await fetch("/api/data/teams");
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error("Unauthorized");
         }
-      } catch (error) {
-        console.error("❌ Error fetching teams:", error);
-      } finally {
-        setLoading(false);
+        throw new Error(`Failed to fetch teams: ${response.status}`);
       }
-    };
+      const data = await response.json();
+      return (data.teams || []).map((team: Team) => ({
+        ...team,
+        players: Array.isArray(team.players) ? team.players : [],
+      }));
+    },
+    enabled: status === "authenticated" && !!session?.user,
+    staleTime: 1000 * 30, // 30 seconds
+    refetchInterval: 1000 * 60, // Refetch every minute
+  });
 
-    fetchTeams();
-  }, [session, status]); // Add session and status as dependencies
-
-  const setAndSaveTeams = async (newTeams: Team[]) => {
-    // Don't save if not authenticated
-    if (status !== "authenticated" || !session?.user) {
-      console.error("❌ Not authenticated - cannot save teams");
-      return;
-    }
-
-    setTeams(newTeams);
-    try {
+  // Save teams mutation with optimistic updates
+  const saveTeamsMutation = useMutation({
+    mutationFn: async (newTeams: Team[]) => {
       const response = await fetch("/api/data/teams", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ teams: newTeams }),
       });
-      if (response.ok) {
-        console.log("✅ Teams saved to database:", newTeams.length);
-      } else if (response.status === 401) {
-        console.error("❌ Not authenticated - cannot save teams");
-      } else {
-        const errorText = await response.text();
-        console.error("❌ Error saving teams:", response.status, errorText);
+      if (!response.ok) {
+        throw new Error(`Failed to save teams: ${response.status}`);
       }
-    } catch (error) {
-      console.error("❌ Error saving teams:", error);
-    }
-  };
+      return newTeams;
+    },
+    onMutate: async (newTeams: Team[]) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: TEAMS_QUERY_KEY });
+      
+      // Snapshot previous value
+      const previousTeams = queryClient.getQueryData<Team[]>(TEAMS_QUERY_KEY);
+      
+      // Optimistically update
+      queryClient.setQueryData(TEAMS_QUERY_KEY, newTeams);
+      
+      console.log("🚀 Optimistic update: Teams updated immediately");
+      return { previousTeams };
+    },
+    onError: (error, newTeams, context) => {
+      // Rollback on error
+      if (context?.previousTeams) {
+        queryClient.setQueryData(TEAMS_QUERY_KEY, context.previousTeams);
+        console.error("❌ Rollback: Teams save failed, reverted changes");
+      }
+    },
+    onSuccess: (data) => {
+      console.log("✅ Teams saved successfully:", data.length);
+      // Invalidate related queries
+      queryClient.invalidateQueries({ queryKey: ["matches"] });
+      queryClient.invalidateQueries({ queryKey: ["stats"] });
+    },
+    onSettled: () => {
+      // Always refetch to ensure consistency
+      queryClient.invalidateQueries({ queryKey: TEAMS_QUERY_KEY });
+    },
+  });
 
-  const clearTeams = async () => {
-    // Don't clear if not authenticated
-    if (status !== "authenticated" || !session?.user) {
-      console.error("❌ Not authenticated - cannot clear teams");
-      return;
-    }
-
-    setTeams([]);
-    try {
-      await fetch("/api/data/teams", {
+  // Clear teams mutation
+  const clearTeamsMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch("/api/data/teams", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ teams: [] }),
       });
-      console.log("✅ Teams cleared from database");
-    } catch (error) {
-      console.error("❌ Error clearing teams:", error);
+      if (!response.ok) {
+        throw new Error(`Failed to clear teams: ${response.status}`);
+      }
+      return [];
+    },
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: TEAMS_QUERY_KEY });
+      const previousTeams = queryClient.getQueryData<Team[]>(TEAMS_QUERY_KEY);
+      queryClient.setQueryData(TEAMS_QUERY_KEY, []);
+      console.log("🚀 Optimistic update: Teams cleared immediately");
+      return { previousTeams };
+    },
+    onError: (error, variables, context) => {
+      if (context?.previousTeams) {
+        queryClient.setQueryData(TEAMS_QUERY_KEY, context.previousTeams);
+        console.error("❌ Rollback: Teams clear failed, reverted changes");
+      }
+    },
+    onSuccess: () => {
+      console.log("✅ Teams cleared successfully");
+      // Invalidate all related data
+      queryClient.invalidateQueries({ queryKey: ["matches"] });
+      queryClient.invalidateQueries({ queryKey: ["stats"] });
+      queryClient.invalidateQueries({ queryKey: ["teamOfWeek"] });
+    },
+  });
+
+  const setAndSaveTeams = (newTeams: Team[]) => {
+    if (status !== "authenticated" || !session?.user) {
+      console.error("❌ Not authenticated - cannot save teams");
+      return;
     }
+    saveTeamsMutation.mutate(newTeams);
   };
 
-  return { teams, setTeams: setAndSaveTeams, clearTeams, loading };
+  const clearTeams = () => {
+    if (status !== "authenticated" || !session?.user) {
+      console.error("❌ Not authenticated - cannot clear teams");
+      return;
+    }
+    clearTeamsMutation.mutate();
+  };
+
+  // Force refresh function
+  const refreshTeams = () => {
+    queryClient.invalidateQueries({ queryKey: TEAMS_QUERY_KEY });
+    refetch();
+  };
+
+  return { 
+    teams, 
+    setTeams: setAndSaveTeams, 
+    clearTeams, 
+    loading: loading || saveTeamsMutation.isPending || clearTeamsMutation.isPending,
+    error,
+    refreshTeams,
+    isSaving: saveTeamsMutation.isPending,
+    isClearing: clearTeamsMutation.isPending,
+  };
 };

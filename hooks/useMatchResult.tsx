@@ -1,66 +1,60 @@
 import { useEffect, useState, useRef } from "react";
 import { useSession } from "next-auth/react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { MatchResult, TeamStats, Team } from "@/types/team";
 
+const MATCHES_QUERY_KEY = ["matches"];
+const STATS_QUERY_KEY = ["stats"];
+
 export const useMatchResults = (teams: Team[] = []) => {
-    const [matches, setMatches] = useState<MatchResult[]>([]);
-    const [stats, setStats] = useState<TeamStats[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { data: session, status } = useSession();
+    const queryClient = useQueryClient();
     const isInitialLoad = useRef(true);
     const previousTeamsRef = useRef<Team[]>([]);
-    const { data: session, status } = useSession();
 
-    useEffect(() => {
-        const fetchData = async () => {
-            // Don't fetch if session is still loading
-            if (status === "loading") {
-                return;
+    // Fetch matches using React Query
+    const {
+        data: matches = [],
+        isLoading: matchesLoading,
+        refetch: refetchMatches
+    } = useQuery({
+        queryKey: MATCHES_QUERY_KEY,
+        queryFn: async (): Promise<MatchResult[]> => {
+            const response = await fetch("/api/data/matches");
+            if (!response.ok) {
+                if (response.status === 401) throw new Error("Unauthorized");
+                throw new Error(`Failed to fetch matches: ${response.status}`);
             }
+            const data = await response.json();
+            return data.matches || [];
+        },
+        enabled: status === "authenticated" && !!session?.user,
+        staleTime: 1000 * 30, // 30 seconds
+        refetchInterval: 1000 * 60, // Refetch every minute
+    });
 
-            // Don't fetch if not authenticated
-            if (status === "unauthenticated" || !session?.user) {
-                console.warn("⚠️ Not authenticated - cannot fetch matches/stats");
-                setLoading(false);
-                return;
+    // Fetch stats using React Query
+    const {
+        data: stats = [],
+        isLoading: statsLoading,
+        refetch: refetchStats
+    } = useQuery({
+        queryKey: STATS_QUERY_KEY,
+        queryFn: async (): Promise<TeamStats[]> => {
+            const response = await fetch("/api/data/stats");
+            if (!response.ok) {
+                if (response.status === 401) throw new Error("Unauthorized");
+                throw new Error(`Failed to fetch stats: ${response.status}`);
             }
+            const data = await response.json();
+            return data.stats || [];
+        },
+        enabled: status === "authenticated" && !!session?.user,
+        staleTime: 1000 * 30, // 30 seconds
+        refetchInterval: 1000 * 60, // Refetch every minute
+    });
 
-            try {
-                const [matchesRes, statsRes] = await Promise.all([
-                    fetch("/api/data/matches"),
-                    fetch("/api/data/stats"),
-                ]);
-
-                if (matchesRes.ok) {
-                    const matchesData = await matchesRes.json();
-                    const matches = matchesData.matches || [];
-                    setMatches(matches);
-                    console.log("✅ Matches loaded from database:", matches.length);
-                } else if (matchesRes.status === 401) {
-                    console.warn("⚠️ Not authenticated - cannot fetch matches");
-                } else {
-                    console.error("❌ Error fetching matches:", matchesRes.status);
-                }
-
-                if (statsRes.ok) {
-                    const statsData = await statsRes.json();
-                    const stats = statsData.stats || [];
-                    setStats(stats);
-                    console.log("✅ Stats loaded from database:", stats.length);
-                } else if (statsRes.status === 401) {
-                    console.warn("⚠️ Not authenticated - cannot fetch stats");
-                } else {
-                    console.error("❌ Error fetching stats:", statsRes.status);
-                }
-            } catch (error) {
-                console.error("❌ Error fetching matches/stats:", error);
-            } finally {
-                setLoading(false);
-                isInitialLoad.current = false;
-            }
-        };
-
-        fetchData();
-    }, [session, status]); // Add session and status as dependencies
+    const loading = matchesLoading || statsLoading;
 
     // Initialize stats for all teams when teams change and reset matches/stats
     useEffect(() => {
@@ -76,9 +70,6 @@ export const useMatchResults = (teams: Team[] = []) => {
 
             if (teamsChanged) {
                 // Reset matches and stats when new teams are generated
-                setMatches([]);
-                
-                // Create fresh stats for all teams with 0 values
                 const freshStats: TeamStats[] = teams.map(team => ({
                     name: team.name,
                     played: 0,
@@ -89,8 +80,10 @@ export const useMatchResults = (teams: Team[] = []) => {
                     points: 0
                 }));
 
-                setStats(freshStats);
-                
+                // Optimistically update both matches and stats
+                queryClient.setQueryData(MATCHES_QUERY_KEY, []);
+                queryClient.setQueryData(STATS_QUERY_KEY, freshStats);
+
                 // Save fresh data to database
                 if (status === "authenticated" && session?.user) {
                     Promise.all([
@@ -104,7 +97,11 @@ export const useMatchResults = (teams: Team[] = []) => {
                             headers: { "Content-Type": "application/json" },
                             body: JSON.stringify({ stats: freshStats }),
                         })
-                    ]).catch(error => {
+                    ]).then(() => {
+                        // Invalidate queries to ensure consistency
+                        queryClient.invalidateQueries({ queryKey: MATCHES_QUERY_KEY });
+                        queryClient.invalidateQueries({ queryKey: STATS_QUERY_KEY });
+                    }).catch(error => {
                         console.error("Error resetting matches/stats:", error);
                     });
                 }
@@ -123,15 +120,18 @@ export const useMatchResults = (teams: Team[] = []) => {
                 }));
 
                 // Only set stats if they're empty, don't overwrite existing ones
-                setStats(prevStats => prevStats.length === 0 ? initialStats : prevStats);
+                if (stats.length === 0) {
+                    queryClient.setQueryData(STATS_QUERY_KEY, initialStats);
+                }
             }
         }
         
         // Update the previous teams reference
         previousTeamsRef.current = teams;
-    }, [teams, stats.length]);
+        isInitialLoad.current = false;
+    }, [teams, stats.length, queryClient, session, status]);
 
-    const updateStatsFromMatches = async (matchList: MatchResult[]) => {
+    const updateStatsFromMatches = (matchList: MatchResult[]) => {
         // Start with initialized stats for all teams
         const initialStats: TeamStats[] = teams.map(team => ({
             name: team.name,
@@ -179,89 +179,148 @@ export const useMatchResults = (teams: Team[] = []) => {
             }
         }
 
-        setStats(newStats);
-        
-        // Only save if authenticated
-        if (status === "authenticated" && session?.user) {
+        return newStats;
+    };
+
+    // Add match mutation with optimistic updates
+    const addMatchMutation = useMutation({
+        mutationFn: async ({ teamA, teamB, scoreA, scoreB }: { teamA: string, teamB: string, scoreA: number, scoreB: number }) => {
+            const newMatch: MatchResult = { teamA, teamB, scoreA, scoreB };
+            const updatedMatches = [...matches, newMatch];
+            
+            const response = await fetch("/api/data/matches", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ matches: updatedMatches }),
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Failed to save match: ${response.status}`);
+            }
+            
+            return { newMatch, updatedMatches };
+        },
+        onMutate: async ({ teamA, teamB, scoreA, scoreB }) => {
+            // Cancel outgoing refetches
+            await queryClient.cancelQueries({ queryKey: MATCHES_QUERY_KEY });
+            await queryClient.cancelQueries({ queryKey: STATS_QUERY_KEY });
+            
+            // Snapshot previous values
+            const previousMatches = queryClient.getQueryData<MatchResult[]>(MATCHES_QUERY_KEY) || [];
+            const previousStats = queryClient.getQueryData<TeamStats[]>(STATS_QUERY_KEY) || [];
+            
+            // Create new match and updated matches
+            const newMatch: MatchResult = { teamA, teamB, scoreA, scoreB };
+            const updatedMatches = [...previousMatches, newMatch];
+            
+            // Calculate new stats
+            const newStats = updateStatsFromMatches(updatedMatches);
+            
+            // Optimistically update
+            queryClient.setQueryData(MATCHES_QUERY_KEY, updatedMatches);
+            queryClient.setQueryData(STATS_QUERY_KEY, newStats);
+            
+            console.log("🚀 Optimistic update: Match added immediately");
+            return { previousMatches, previousStats };
+        },
+        onError: (error, variables, context) => {
+            // Rollback on error
+            if (context?.previousMatches) {
+                queryClient.setQueryData(MATCHES_QUERY_KEY, context.previousMatches);
+            }
+            if (context?.previousStats) {
+                queryClient.setQueryData(STATS_QUERY_KEY, context.previousStats);
+            }
+            console.error("❌ Rollback: Match add failed, reverted changes");
+        },
+        onSuccess: async ({ updatedMatches }) => {
+            console.log("✅ Match saved successfully");
+            
+            // Update stats in database
+            const newStats = updateStatsFromMatches(updatedMatches);
             try {
                 await fetch("/api/data/stats", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ stats: newStats }),
                 });
-                console.log("✅ Stats saved to database");
+                console.log("✅ Stats updated successfully");
             } catch (error) {
-                console.error("❌ Error saving stats:", error);
+                console.error("❌ Error updating stats:", error);
             }
-        }
-    };
+        },
+        onSettled: () => {
+            // Always refetch to ensure consistency
+            queryClient.invalidateQueries({ queryKey: MATCHES_QUERY_KEY });
+            queryClient.invalidateQueries({ queryKey: STATS_QUERY_KEY });
+        },
+    });
 
-    const addMatchResult = async (teamA: string, teamB: string, scoreA: number, scoreB: number) => {
-        // Don't save if not authenticated
-        if (status !== "authenticated" || !session?.user) {
-            console.error("❌ Not authenticated - cannot save match");
-            return;
-        }
-
-        const newMatch: MatchResult = { teamA, teamB, scoreA, scoreB };
-        const updatedMatches = [...matches, newMatch];
-        setMatches(updatedMatches);
-        
-        try {
+    // Remove match mutation
+    const removeMatchMutation = useMutation({
+        mutationFn: async (index: number) => {
+            const updatedMatches = matches.filter((_, i) => i !== index);
+            
             const response = await fetch("/api/data/matches", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ matches: updatedMatches }),
             });
-            if (response.ok) {
-                console.log("✅ Match saved to database");
-                await updateStatsFromMatches(updatedMatches);
-            } else if (response.status === 401) {
-                console.error("❌ Not authenticated - cannot save match");
-            } else {
-                console.error("❌ Error saving match:", response.status);
+            
+            if (!response.ok) {
+                throw new Error(`Failed to remove match: ${response.status}`);
             }
-        } catch (error) {
-            console.error("❌ Error saving match:", error);
-        }
-    };
-
-    const removeMatch = async (index: number) => {
-        // Don't save if not authenticated
-        if (status !== "authenticated" || !session?.user) {
-            console.error("❌ Not authenticated - cannot remove match");
-            return;
-        }
-
-        const updatedMatches = matches.filter((_, i) => i !== index);
-        setMatches(updatedMatches);
-        
-        try {
-            const response = await fetch("/api/data/matches", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ matches: updatedMatches }),
-            });
-            if (response.ok) {
-                console.log("✅ Match removed from database");
-                await updateStatsFromMatches(updatedMatches);
+            
+            return { updatedMatches, removedIndex: index };
+        },
+        onMutate: async (index: number) => {
+            await queryClient.cancelQueries({ queryKey: MATCHES_QUERY_KEY });
+            await queryClient.cancelQueries({ queryKey: STATS_QUERY_KEY });
+            
+            const previousMatches = queryClient.getQueryData<MatchResult[]>(MATCHES_QUERY_KEY) || [];
+            const previousStats = queryClient.getQueryData<TeamStats[]>(STATS_QUERY_KEY) || [];
+            
+            const updatedMatches = previousMatches.filter((_, i) => i !== index);
+            const newStats = updateStatsFromMatches(updatedMatches);
+            
+            queryClient.setQueryData(MATCHES_QUERY_KEY, updatedMatches);
+            queryClient.setQueryData(STATS_QUERY_KEY, newStats);
+            
+            console.log("🚀 Optimistic update: Match removed immediately");
+            return { previousMatches, previousStats };
+        },
+        onError: (error, variables, context) => {
+            if (context?.previousMatches) {
+                queryClient.setQueryData(MATCHES_QUERY_KEY, context.previousMatches);
             }
-        } catch (error) {
-            console.error("❌ Error removing match:", error);
-        }
-    };
+            if (context?.previousStats) {
+                queryClient.setQueryData(STATS_QUERY_KEY, context.previousStats);
+            }
+            console.error("❌ Rollback: Match remove failed, reverted changes");
+        },
+        onSuccess: async ({ updatedMatches }) => {
+            console.log("✅ Match removed successfully");
+            
+            const newStats = updateStatsFromMatches(updatedMatches);
+            try {
+                await fetch("/api/data/stats", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ stats: newStats }),
+                });
+            } catch (error) {
+                console.error("❌ Error updating stats:", error);
+            }
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: MATCHES_QUERY_KEY });
+            queryClient.invalidateQueries({ queryKey: STATS_QUERY_KEY });
+        },
+    });
 
-    const clearMatchResults = async () => {
-        // Don't clear if not authenticated
-        if (status !== "authenticated" || !session?.user) {
-            console.error("❌ Not authenticated - cannot clear matches");
-            return;
-        }
-
-        setMatches([]);
-        setStats([]);
-        
-        try {
+    // Clear matches mutation
+    const clearMatchesMutation = useMutation({
+        mutationFn: async () => {
             await Promise.all([
                 fetch("/api/data/matches", {
                     method: "POST",
@@ -274,10 +333,69 @@ export const useMatchResults = (teams: Team[] = []) => {
                     body: JSON.stringify({ stats: [] }),
                 }),
             ]);
-            console.log("✅ Matches and stats cleared from database");
-        } catch (error) {
-            console.error("❌ Error clearing matches/stats:", error);
+            return { matches: [], stats: [] };
+        },
+        onMutate: async () => {
+            await queryClient.cancelQueries({ queryKey: MATCHES_QUERY_KEY });
+            await queryClient.cancelQueries({ queryKey: STATS_QUERY_KEY });
+            
+            const previousMatches = queryClient.getQueryData<MatchResult[]>(MATCHES_QUERY_KEY);
+            const previousStats = queryClient.getQueryData<TeamStats[]>(STATS_QUERY_KEY);
+            
+            queryClient.setQueryData(MATCHES_QUERY_KEY, []);
+            queryClient.setQueryData(STATS_QUERY_KEY, []);
+            
+            console.log("🚀 Optimistic update: Matches cleared immediately");
+            return { previousMatches, previousStats };
+        },
+        onError: (error, variables, context) => {
+            if (context?.previousMatches) {
+                queryClient.setQueryData(MATCHES_QUERY_KEY, context.previousMatches);
+            }
+            if (context?.previousStats) {
+                queryClient.setQueryData(STATS_QUERY_KEY, context.previousStats);
+            }
+            console.error("❌ Rollback: Clear matches failed, reverted changes");
+        },
+        onSuccess: () => {
+            console.log("✅ Matches and stats cleared successfully");
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: MATCHES_QUERY_KEY });
+            queryClient.invalidateQueries({ queryKey: STATS_QUERY_KEY });
+        },
+    });
+
+    const addMatchResult = (teamA: string, teamB: string, scoreA: number, scoreB: number) => {
+        if (status !== "authenticated" || !session?.user) {
+            console.error("❌ Not authenticated - cannot save match");
+            return;
         }
+        addMatchMutation.mutate({ teamA, teamB, scoreA, scoreB });
+    };
+
+    const removeMatch = (index: number) => {
+        if (status !== "authenticated" || !session?.user) {
+            console.error("❌ Not authenticated - cannot remove match");
+            return;
+        }
+        removeMatchMutation.mutate(index);
+    };
+
+    const clearMatchResults = () => {
+        if (status !== "authenticated" || !session?.user) {
+            console.error("❌ Not authenticated - cannot clear matches");
+            return;
+        }
+        clearMatchesMutation.mutate();
+    };
+
+    // Force refresh function
+    const refreshData = () => {
+        queryClient.invalidateQueries({ queryKey: MATCHES_QUERY_KEY });
+        queryClient.invalidateQueries({ queryKey: STATS_QUERY_KEY });
+        refetchMatches();
+        refetchStats();
     };
 
     return {
@@ -286,6 +404,10 @@ export const useMatchResults = (teams: Team[] = []) => {
         addMatchResult,
         removeMatch,
         clearMatchResults,
-        loading,
+        loading: loading || addMatchMutation.isPending || removeMatchMutation.isPending || clearMatchesMutation.isPending,
+        refreshData,
+        isAddingMatch: addMatchMutation.isPending,
+        isRemovingMatch: removeMatchMutation.isPending,
+        isClearingMatches: clearMatchesMutation.isPending,
     };
 };
