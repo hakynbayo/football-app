@@ -7,6 +7,7 @@ import { SessionProvider } from "next-auth/react";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Loader } from "lucide-react";
+import { clearLegacyStorage, warnAgainstLocalStorage } from "@/lib/clearStorage";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -27,6 +28,12 @@ export default function RootLayout({
 }) {
   const pathname = usePathname();
   const [loading, setLoading] = useState(false);
+
+  // Clear any legacy localStorage on app start and set up warnings
+  useEffect(() => {
+    clearLegacyStorage();
+    warnAgainstLocalStorage();
+  }, []);
 
   useEffect(() => {
     setLoading(true);

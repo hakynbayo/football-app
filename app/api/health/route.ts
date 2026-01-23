@@ -17,10 +17,7 @@ export async function GET() {
       databaseType = "none";
     } else {
       // Determine which database is being used
-      if (
-        process.env.TURSO_DATABASE_URL &&
-        process.env.NODE_ENV === "production"
-      ) {
+      if (process.env.TURSO_DATABASE_URL) {
         databaseType = "turso";
       } else {
         databaseType = "sqlite";
