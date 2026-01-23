@@ -66,10 +66,10 @@ const TeamCard: FC<TeamCardProps> = ({ team, teamIndex, onUpdateTeam }) => {
             {team.players.map((player, idx) => (
               <div
                 key={idx}
-                className="flex items-center gap-2 p-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 border border-gray-200 dark:border-gray-700"
+                className="flex items-center gap-2 p-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 border border-gray-200 dark:border-gray-700 border-l-4 border-l-black dark:border-l-white"
               >
                 {/* <div className={`w-6 h-6 rounded-full ${getPlayerColor(idx)} flex items-center justify-center flex-shrink-0`}> */}
-                  <div className="w-2 h-2 bg-black dark:bg-black rounded-full"></div>
+                  <div className="w-2 h-2 bg-black dark:bg-white rounded-full"></div>
                 {/* </div> */}
                 {editingIndex === idx ? (
                   <div className="flex items-center gap-1.5 flex-1 min-w-0">
