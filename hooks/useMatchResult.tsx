@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { useSession } from "next-auth/react";
 import { MatchResult, TeamStats, Team } from "@/types/team";
 
 export const useMatchResults = (teams: Team[] = []) => {
@@ -7,9 +8,22 @@ export const useMatchResults = (teams: Team[] = []) => {
     const [loading, setLoading] = useState(true);
     const isInitialLoad = useRef(true);
     const previousTeamsRef = useRef<Team[]>([]);
+    const { data: session, status } = useSession();
 
     useEffect(() => {
         const fetchData = async () => {
+            // Don't fetch if session is still loading
+            if (status === "loading") {
+                return;
+            }
+
+            // Don't fetch if not authenticated
+            if (status === "unauthenticated" || !session?.user) {
+                console.warn("⚠️ Not authenticated - cannot fetch matches/stats");
+                setLoading(false);
+                return;
+            }
+
             try {
                 const [matchesRes, statsRes] = await Promise.all([
                     fetch("/api/data/matches"),
@@ -46,7 +60,7 @@ export const useMatchResults = (teams: Team[] = []) => {
         };
 
         fetchData();
-    }, []);
+    }, [session, status]); // Add session and status as dependencies
 
     // Initialize stats for all teams when teams change and reset matches/stats
     useEffect(() => {
@@ -78,20 +92,22 @@ export const useMatchResults = (teams: Team[] = []) => {
                 setStats(freshStats);
                 
                 // Save fresh data to database
-                Promise.all([
-                    fetch("/api/data/matches", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ matches: [] }),
-                    }),
-                    fetch("/api/data/stats", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ stats: freshStats }),
-                    })
-                ]).catch(error => {
-                    console.error("Error resetting matches/stats:", error);
-                });
+                if (status === "authenticated" && session?.user) {
+                    Promise.all([
+                        fetch("/api/data/matches", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ matches: [] }),
+                        }),
+                        fetch("/api/data/stats", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ stats: freshStats }),
+                        })
+                    ]).catch(error => {
+                        console.error("Error resetting matches/stats:", error);
+                    });
+                }
 
                 console.log("🔄 Table reset with new teams:", teams.length);
             } else if (stats.length === 0) {
@@ -164,18 +180,29 @@ export const useMatchResults = (teams: Team[] = []) => {
         }
 
         setStats(newStats);
-        try {
-            await fetch("/api/data/stats", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ stats: newStats }),
-            });
-        } catch (error) {
-            console.error("Error saving stats:", error);
+        
+        // Only save if authenticated
+        if (status === "authenticated" && session?.user) {
+            try {
+                await fetch("/api/data/stats", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ stats: newStats }),
+                });
+                console.log("✅ Stats saved to database");
+            } catch (error) {
+                console.error("❌ Error saving stats:", error);
+            }
         }
     };
 
     const addMatchResult = async (teamA: string, teamB: string, scoreA: number, scoreB: number) => {
+        // Don't save if not authenticated
+        if (status !== "authenticated" || !session?.user) {
+            console.error("❌ Not authenticated - cannot save match");
+            return;
+        }
+
         const newMatch: MatchResult = { teamA, teamB, scoreA, scoreB };
         const updatedMatches = [...matches, newMatch];
         setMatches(updatedMatches);
@@ -200,6 +227,12 @@ export const useMatchResults = (teams: Team[] = []) => {
     };
 
     const removeMatch = async (index: number) => {
+        // Don't save if not authenticated
+        if (status !== "authenticated" || !session?.user) {
+            console.error("❌ Not authenticated - cannot remove match");
+            return;
+        }
+
         const updatedMatches = matches.filter((_, i) => i !== index);
         setMatches(updatedMatches);
         
@@ -210,14 +243,21 @@ export const useMatchResults = (teams: Team[] = []) => {
                 body: JSON.stringify({ matches: updatedMatches }),
             });
             if (response.ok) {
+                console.log("✅ Match removed from database");
                 await updateStatsFromMatches(updatedMatches);
             }
         } catch (error) {
-            console.error("Error removing match:", error);
+            console.error("❌ Error removing match:", error);
         }
     };
 
     const clearMatchResults = async () => {
+        // Don't clear if not authenticated
+        if (status !== "authenticated" || !session?.user) {
+            console.error("❌ Not authenticated - cannot clear matches");
+            return;
+        }
+
         setMatches([]);
         setStats([]);
         
@@ -234,8 +274,9 @@ export const useMatchResults = (teams: Team[] = []) => {
                     body: JSON.stringify({ stats: [] }),
                 }),
             ]);
+            console.log("✅ Matches and stats cleared from database");
         } catch (error) {
-            console.error("Error clearing matches/stats:", error);
+            console.error("❌ Error clearing matches/stats:", error);
         }
     };
 

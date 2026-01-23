@@ -1,12 +1,26 @@
 import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 import { Team } from "@/types/team";
 
 export const useTeams = () => {
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
+  const { data: session, status } = useSession();
 
   useEffect(() => {
     const fetchTeams = async () => {
+      // Don't fetch if session is still loading
+      if (status === "loading") {
+        return;
+      }
+
+      // Don't fetch if not authenticated
+      if (status === "unauthenticated" || !session?.user) {
+        console.warn("⚠️ Not authenticated - cannot fetch teams");
+        setLoading(false);
+        return;
+      }
+
       try {
         const response = await fetch("/api/data/teams");
         if (response.ok) {
@@ -31,9 +45,15 @@ export const useTeams = () => {
     };
 
     fetchTeams();
-  }, []);
+  }, [session, status]); // Add session and status as dependencies
 
   const setAndSaveTeams = async (newTeams: Team[]) => {
+    // Don't save if not authenticated
+    if (status !== "authenticated" || !session?.user) {
+      console.error("❌ Not authenticated - cannot save teams");
+      return;
+    }
+
     setTeams(newTeams);
     try {
       const response = await fetch("/api/data/teams", {
@@ -55,6 +75,12 @@ export const useTeams = () => {
   };
 
   const clearTeams = async () => {
+    // Don't clear if not authenticated
+    if (status !== "authenticated" || !session?.user) {
+      console.error("❌ Not authenticated - cannot clear teams");
+      return;
+    }
+
     setTeams([]);
     try {
       await fetch("/api/data/teams", {
@@ -62,8 +88,9 @@ export const useTeams = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ teams: [] }),
       });
+      console.log("✅ Teams cleared from database");
     } catch (error) {
-      console.error("Error clearing teams:", error);
+      console.error("❌ Error clearing teams:", error);
     }
   };
 

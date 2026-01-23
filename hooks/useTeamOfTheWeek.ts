@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 import { TeamOfTheWeek, Team, TeamStats } from "@/types/team";
 
 export const useTeamOfTheWeek = () => {
@@ -7,9 +8,22 @@ export const useTeamOfTheWeek = () => {
     []
   );
   const [loading, setLoading] = useState(true);
+  const { data: session, status } = useSession();
 
   useEffect(() => {
     const fetchTeamOfTheWeek = async () => {
+      // Don't fetch if session is still loading
+      if (status === "loading") {
+        return;
+      }
+
+      // Don't fetch if not authenticated
+      if (status === "unauthenticated" || !session?.user) {
+        console.warn("⚠️ Not authenticated - cannot fetch team of the week");
+        setLoading(false);
+        return;
+      }
+
       try {
         const response = await fetch("/api/data/team-of-the-week?month=all");
         if (response.ok) {
@@ -48,9 +62,15 @@ export const useTeamOfTheWeek = () => {
     };
 
     fetchTeamOfTheWeek();
-  }, []);
+  }, [session, status]); // Add session and status as dependencies
 
   const saveTeamOfTheWeek = async (team: Team, stats: TeamStats[]) => {
+    // Don't save if not authenticated
+    if (status !== "authenticated" || !session?.user) {
+      console.error("❌ Not authenticated - cannot save team of the week");
+      return;
+    }
+
     const now = new Date();
     const dateStr = now.toLocaleDateString("en-US", {
       year: "numeric",
@@ -97,6 +117,12 @@ export const useTeamOfTheWeek = () => {
   };
 
   const clearTeamOfTheWeek = async () => {
+    // Don't clear if not authenticated
+    if (status !== "authenticated" || !session?.user) {
+      console.error("❌ Not authenticated - cannot clear team of the week");
+      return;
+    }
+
     setTeamOfWeek(null);
     setTeamOfWeekHistory([]);
     
@@ -107,8 +133,9 @@ export const useTeamOfTheWeek = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ month: "all", data: {} }),
       });
+      console.log("✅ Team of the week cleared from database");
     } catch (error) {
-      console.error("Error clearing team of the week:", error);
+      console.error("❌ Error clearing team of the week:", error);
     }
   };
 
