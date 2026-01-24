@@ -8,6 +8,13 @@ export const QUERY_KEYS = {
   TEAM_OF_WEEK: ["teamOfWeek"],
 } as const;
 
+// Global sync state for visual feedback
+let globalSyncCallback: (() => void) | null = null;
+
+export const setGlobalSyncCallback = (callback: () => void) => {
+  globalSyncCallback = callback;
+};
+
 // Invalidate all data queries to force refresh
 export const invalidateAllData = (queryClient: QueryClient) => {
   console.log("🔄 Invalidating all data queries for fresh sync");
@@ -38,6 +45,25 @@ export const setupPeriodicSync = (queryClient: QueryClient, intervalMs: number =
 
 // Manual sync function for user-triggered refresh
 export const manualSync = (queryClient: QueryClient) => {
-  console.log("👤 Manual sync triggered by user");
+  console.log("👤 Manual sync triggered");
+  
+  // Trigger visual feedback if callback is set
+  if (globalSyncCallback) {
+    globalSyncCallback();
+  }
+  
   refetchAllData(queryClient);
+};
+
+// Auto sync function called after data changes
+export const autoSync = (queryClient: QueryClient) => {
+  console.log("🤖 Auto sync triggered after data change");
+  
+  // Trigger visual feedback if callback is set
+  if (globalSyncCallback) {
+    globalSyncCallback();
+  }
+  
+  // Use invalidate for auto-sync to be less aggressive
+  invalidateAllData(queryClient);
 };

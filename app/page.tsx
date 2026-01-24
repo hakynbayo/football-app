@@ -9,7 +9,7 @@ import TeamOfTheWeekComponent from "@/components/shared/TeamOfTheWeek";
 import { useMatchResults } from "@/hooks/useMatchResult";
 import { useTeams } from "@/hooks/useTeams";
 import { useTeamOfTheWeek } from "@/hooks/useTeamOfTheWeek";
-import { manualSync } from "@/lib/dataSync";
+import { manualSync, setGlobalSyncCallback } from "@/lib/dataSync";
 import { Team } from "@/types/team";
 import {
   Users,
@@ -32,6 +32,28 @@ export default function HomePage() {
   const { teams, setTeams, refreshTeams } = useTeams();
   const [playerText, setPlayerText] = useState("");
   const queryClient = useQueryClient();
+  const [isAutoSyncing, setIsAutoSyncing] = useState(false);
+
+  // Custom sync function with visual feedback
+  const handleManualSync = () => {
+    setIsAutoSyncing(true);
+    manualSync(queryClient);
+    // Reset the syncing state after a short delay
+    setTimeout(() => setIsAutoSyncing(false), 2000);
+  };
+
+  // Set up global sync callback for auto-sync visual feedback
+  useEffect(() => {
+    const triggerAutoSyncFeedback = () => {
+      setIsAutoSyncing(true);
+      setTimeout(() => setIsAutoSyncing(false), 1500);
+    };
+    
+    setGlobalSyncCallback(triggerAutoSyncFeedback);
+    
+    // Cleanup
+    return () => setGlobalSyncCallback(() => {});
+  }, []);
   const { stats, matches, addMatchResult, removeMatch, clearMatchResults } = useMatchResults(teams);
   const { teamOfWeek, saveTeamOfTheWeek, getTeamOfWeekByMonth } = useTeamOfTheWeek();
   const [activeTab, setActiveTab] = useState<TabType>("teams");
@@ -156,11 +178,16 @@ export default function HomePage() {
               {/* Sync Button */}
               {session && (
                 <button
-                  onClick={() => manualSync(queryClient)}
-                  className="p-2 bg-blue-100 hover:bg-blue-200 dark:bg-blue-900 dark:hover:bg-blue-800 text-blue-600 dark:text-blue-400 rounded-lg transition-colors"
-                  title="Sync data across devices"
+                  onClick={handleManualSync}
+                  className={`p-2 rounded-lg transition-all duration-200 ${
+                    isAutoSyncing 
+                      ? "bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-400 animate-pulse" 
+                      : "bg-blue-100 hover:bg-blue-200 dark:bg-blue-900 dark:hover:bg-blue-800 text-blue-600 dark:text-blue-400"
+                  }`}
+                  title={isAutoSyncing ? "Syncing data..." : "Sync data across devices"}
+                  disabled={isAutoSyncing}
                 >
-                  <RefreshCw className="w-4 h-4" />
+                  <RefreshCw className={`w-4 h-4 ${isAutoSyncing ? "animate-spin" : ""}`} />
                 </button>
               )}
               

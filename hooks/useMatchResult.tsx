@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { MatchResult, TeamStats, Team } from "@/types/team";
+import { autoSync } from "@/lib/dataSync";
 
 const MATCHES_QUERY_KEY = ["matches"];
 const STATS_QUERY_KEY = ["stats"];
@@ -245,6 +246,11 @@ export const useMatchResults = (teams: Team[] = []) => {
                     body: JSON.stringify({ stats: newStats }),
                 });
                 console.log("✅ Stats updated successfully");
+                
+                // Trigger automatic sync to update all devices
+                console.log("🔄 Auto-syncing data after match result...");
+                autoSync(queryClient);
+                
             } catch (error) {
                 console.error("❌ Error updating stats:", error);
             }
@@ -308,6 +314,12 @@ export const useMatchResults = (teams: Team[] = []) => {
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ stats: newStats }),
                 });
+                console.log("✅ Stats updated after match removal");
+                
+                // Trigger automatic sync to update all devices
+                console.log("🔄 Auto-syncing data after match removal...");
+                autoSync(queryClient);
+                
             } catch (error) {
                 console.error("❌ Error updating stats:", error);
             }
@@ -359,6 +371,10 @@ export const useMatchResults = (teams: Team[] = []) => {
         },
         onSuccess: () => {
             console.log("✅ Matches and stats cleared successfully");
+            
+            // Trigger automatic sync to update all devices
+            console.log("🔄 Auto-syncing data after clearing matches...");
+            autoSync(queryClient);
         },
         onSettled: () => {
             queryClient.invalidateQueries({ queryKey: MATCHES_QUERY_KEY });

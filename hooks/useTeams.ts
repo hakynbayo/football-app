@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Team } from "@/types/team";
+import { autoSync } from "@/lib/dataSync";
 
 const TEAMS_QUERY_KEY = ["teams"];
 
@@ -74,6 +75,10 @@ export const useTeams = () => {
       // Invalidate related queries
       queryClient.invalidateQueries({ queryKey: ["matches"] });
       queryClient.invalidateQueries({ queryKey: ["stats"] });
+      
+      // Trigger automatic sync to update all devices
+      console.log("🔄 Auto-syncing data after teams update...");
+      autoSync(queryClient);
     },
     onSettled: () => {
       // Always refetch to ensure consistency
@@ -113,6 +118,10 @@ export const useTeams = () => {
       queryClient.invalidateQueries({ queryKey: ["matches"] });
       queryClient.invalidateQueries({ queryKey: ["stats"] });
       queryClient.invalidateQueries({ queryKey: ["teamOfWeek"] });
+      
+      // Trigger automatic sync to update all devices
+      console.log("🔄 Auto-syncing data after teams cleared...");
+      autoSync(queryClient);
     },
   });
 

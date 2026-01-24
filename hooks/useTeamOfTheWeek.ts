@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { TeamOfTheWeek, Team, TeamStats } from "@/types/team";
+import { autoSync } from "@/lib/dataSync";
 
 const TEAM_OF_WEEK_QUERY_KEY = ["teamOfWeek"];
 
@@ -129,6 +130,10 @@ export const useTeamOfTheWeek = () => {
     },
     onSuccess: () => {
       console.log("✅ Team of the week saved successfully");
+      
+      // Trigger automatic sync to update all devices
+      console.log("🔄 Auto-syncing data after team of the week update...");
+      autoSync(queryClient);
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: TEAM_OF_WEEK_QUERY_KEY });
@@ -174,6 +179,10 @@ export const useTeamOfTheWeek = () => {
     },
     onSuccess: () => {
       console.log("✅ Team of the week cleared successfully");
+      
+      // Trigger automatic sync to update all devices
+      console.log("🔄 Auto-syncing data after team of the week cleared...");
+      autoSync(queryClient);
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: TEAM_OF_WEEK_QUERY_KEY });
