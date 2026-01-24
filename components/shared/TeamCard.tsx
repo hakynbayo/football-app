@@ -41,7 +41,7 @@ const TeamCard: FC<TeamCardProps> = ({ team, teamIndex, onUpdateTeam }) => {
 
   return (
     <>
-      <div className={`w-full transition-all duration-300 hover:scale-[1.01] border-l-4 bg-gradient-to-br rounded-xl border border-gray-200 dark:border-gray-800 relative overflow-hidden`}>
+      <div className={`w-full transition-all duration-300 hover:scale-[1.01] border-l-4 bg-gradient-to-br rounded-xl border border-gray-800 dark:border-gray-800 relative overflow-hidden`}>
         {/* Team Index Badge */}
         
 
@@ -66,7 +66,7 @@ const TeamCard: FC<TeamCardProps> = ({ team, teamIndex, onUpdateTeam }) => {
             {team.players.map((player, idx) => (
               <div
                 key={idx}
-                className="flex items-center gap-2 p-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 border border-gray-200 dark:border-gray-700 border-l-4 border-l-black dark:border-l-white"
+                className="flex items-center gap-2 p-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 border border-gray-200 dark:border-gray-700 "
               >
                 {/* <div className={`w-6 h-6 rounded-full ${getPlayerColor(idx)} flex items-center justify-center flex-shrink-0`}> */}
                   <div className="w-2 h-2 bg-black dark:bg-white rounded-full"></div>
