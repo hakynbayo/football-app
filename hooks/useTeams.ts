@@ -2,9 +2,9 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Team } from "@/types/team";
-import { autoSync } from "@/lib/dataSync";
+import { autoSync, QUERY_KEYS } from "@/lib/dataSync";
 
-const TEAMS_QUERY_KEY = ["teams"];
+const TEAMS_QUERY_KEY = QUERY_KEYS.TEAMS;
 
 export const useTeams = () => {
   const { data: session, status } = useSession();
@@ -81,8 +81,8 @@ export const useTeams = () => {
       autoSync(queryClient);
     },
     onSettled: () => {
-      // Always refetch to ensure consistency
-      queryClient.invalidateQueries({ queryKey: TEAMS_QUERY_KEY });
+      // Don't invalidate immediately after success to avoid refetch loops
+      console.log("🏁 Teams save mutation settled");
     },
   });
 
@@ -114,10 +114,6 @@ export const useTeams = () => {
     },
     onSuccess: () => {
       console.log("✅ Teams cleared successfully");
-      // Invalidate all related data
-      queryClient.invalidateQueries({ queryKey: ["matches"] });
-      queryClient.invalidateQueries({ queryKey: ["stats"] });
-      queryClient.invalidateQueries({ queryKey: ["teamOfWeek"] });
       
       // Trigger automatic sync to update all devices
       console.log("🔄 Auto-syncing data after teams cleared...");

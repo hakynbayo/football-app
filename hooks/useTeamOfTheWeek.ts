@@ -2,9 +2,9 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { TeamOfTheWeek, Team, TeamStats } from "@/types/team";
-import { autoSync } from "@/lib/dataSync";
+import { autoSync, QUERY_KEYS } from "@/lib/dataSync";
 
-const TEAM_OF_WEEK_QUERY_KEY = ["teamOfWeek"];
+const TEAM_OF_WEEK_QUERY_KEY = QUERY_KEYS.TEAM_OF_WEEK;
 
 export const useTeamOfTheWeek = () => {
   const [teamOfWeek, setTeamOfWeek] = useState<TeamOfTheWeek | null>(null);

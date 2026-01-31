@@ -2,10 +2,10 @@ import { useEffect, useState, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { MatchResult, TeamStats, Team } from "@/types/team";
-import { autoSync } from "@/lib/dataSync";
+import { autoSync, QUERY_KEYS } from "@/lib/dataSync";
 
-const MATCHES_QUERY_KEY = ["matches"];
-const STATS_QUERY_KEY = ["stats"];
+const MATCHES_QUERY_KEY = QUERY_KEYS.MATCHES;
+const STATS_QUERY_KEY = QUERY_KEYS.STATS;
 
 export const useMatchResults = (teams: Team[] = []) => {
     const { data: session, status } = useSession();
@@ -17,16 +17,19 @@ export const useMatchResults = (teams: Team[] = []) => {
     const {
         data: matches = [],
         isLoading: matchesLoading,
-        refetch: refetchMatches
+        refetch: refetchMatches,
+        error: matchesError
     } = useQuery({
         queryKey: MATCHES_QUERY_KEY,
         queryFn: async (): Promise<MatchResult[]> => {
+            console.log("🔍 Fetching matches from API...");
             const response = await fetch("/api/data/matches");
             if (!response.ok) {
                 if (response.status === 401) throw new Error("Unauthorized");
                 throw new Error(`Failed to fetch matches: ${response.status}`);
             }
             const data = await response.json();
+            console.log("✅ Matches fetched:", data.matches?.length || 0);
             return data.matches || [];
         },
         enabled: status === "authenticated" && !!session?.user,
@@ -38,16 +41,19 @@ export const useMatchResults = (teams: Team[] = []) => {
     const {
         data: stats = [],
         isLoading: statsLoading,
-        refetch: refetchStats
+        refetch: refetchStats,
+        error: statsError
     } = useQuery({
         queryKey: STATS_QUERY_KEY,
         queryFn: async (): Promise<TeamStats[]> => {
+            console.log("🔍 Fetching stats from API...");
             const response = await fetch("/api/data/stats");
             if (!response.ok) {
                 if (response.status === 401) throw new Error("Unauthorized");
                 throw new Error(`Failed to fetch stats: ${response.status}`);
             }
             const data = await response.json();
+            console.log("✅ Stats fetched:", data.stats?.length || 0);
             return data.stats || [];
         },
         enabled: status === "authenticated" && !!session?.user,
@@ -59,17 +65,25 @@ export const useMatchResults = (teams: Team[] = []) => {
 
     // Initialize stats for all teams when teams change and reset matches/stats
     useEffect(() => {
-        if (teams.length > 0 && !isInitialLoad.current) {
+        // Only run this effect after both teams and data have been loaded
+        if (teams.length > 0 && !matchesLoading && !statsLoading) {
             // Check if teams have actually changed (not just reloaded)
             const previousTeams = previousTeamsRef.current;
-            const teamsChanged = teams.length !== previousTeams.length || 
+            
+            // More robust team comparison - only reset if teams are genuinely different
+            const teamsChanged = previousTeams.length > 0 && (
+                teams.length !== previousTeams.length || 
                 teams.some((team, index) => 
                     !previousTeams[index] || 
                     team.name !== previousTeams[index].name ||
-                    JSON.stringify(team.players) !== JSON.stringify(previousTeams[index].players)
-                );
+                    JSON.stringify(team.players.sort()) !== JSON.stringify(previousTeams[index].players.sort())
+                )
+            );
 
-            if (teamsChanged) {
+            // Only reset if teams have genuinely changed AND we have previous teams to compare against
+            if (teamsChanged && !isInitialLoad.current) {
+                console.log("🔄 Teams have changed, resetting matches and stats");
+                
                 // Reset matches and stats when new teams are generated
                 const freshStats: TeamStats[] = teams.map(team => ({
                     name: team.name,
@@ -108,8 +122,10 @@ export const useMatchResults = (teams: Team[] = []) => {
                 }
 
                 console.log("🔄 Table reset with new teams:", teams.length);
-            } else if (stats.length === 0) {
-                // If teams haven't changed but we don't have stats, initialize them
+            } else if (stats.length === 0 && teams.length > 0 && !isInitialLoad.current) {
+                // If teams haven't changed but we don't have stats, initialize them (but don't reset matches)
+                console.log("🔧 Initializing stats for existing teams without resetting matches");
+                
                 const initialStats: TeamStats[] = teams.map(team => ({
                     name: team.name,
                     played: 0,
@@ -121,16 +137,19 @@ export const useMatchResults = (teams: Team[] = []) => {
                 }));
 
                 // Only set stats if they're empty, don't overwrite existing ones
-                if (stats.length === 0) {
-                    queryClient.setQueryData(STATS_QUERY_KEY, initialStats);
-                }
+                queryClient.setQueryData(STATS_QUERY_KEY, initialStats);
             }
         }
         
         // Update the previous teams reference
         previousTeamsRef.current = teams;
-        isInitialLoad.current = false;
-    }, [teams, stats.length, queryClient, session, status]);
+        
+        // Mark initial load as complete only after we have data
+        if (teams.length > 0 && !matchesLoading && !statsLoading && isInitialLoad.current) {
+            isInitialLoad.current = false;
+            console.log("✅ Initial data load complete");
+        }
+    }, [teams, stats.length, matchesLoading, statsLoading, queryClient, session, status]);
 
     const updateStatsFromMatches = (matchList: MatchResult[]) => {
         // Start with initialized stats for all teams
@@ -234,18 +253,24 @@ export const useMatchResults = (teams: Team[] = []) => {
             }
             console.error("❌ Rollback: Match add failed, reverted changes");
         },
-        onSuccess: async ({ updatedMatches }) => {
-            console.log("✅ Match saved successfully");
+        onSuccess: async ({ updatedMatches, newMatch }) => {
+            console.log("✅ Match saved successfully to database:", newMatch);
+            console.log("📊 Total matches now:", updatedMatches.length);
             
             // Update stats in database
             const newStats = updateStatsFromMatches(updatedMatches);
             try {
-                await fetch("/api/data/stats", {
+                const response = await fetch("/api/data/stats", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ stats: newStats }),
                 });
-                console.log("✅ Stats updated successfully");
+                
+                if (response.ok) {
+                    console.log("✅ Stats updated successfully in database");
+                } else {
+                    console.error("❌ Failed to update stats:", response.status);
+                }
                 
                 // Trigger automatic sync to update all devices
                 console.log("🔄 Auto-syncing data after match result...");
@@ -256,9 +281,9 @@ export const useMatchResults = (teams: Team[] = []) => {
             }
         },
         onSettled: () => {
-            // Always refetch to ensure consistency
-            queryClient.invalidateQueries({ queryKey: MATCHES_QUERY_KEY });
-            queryClient.invalidateQueries({ queryKey: STATS_QUERY_KEY });
+            // Don't invalidate immediately after success to avoid refetch loops
+            // The autoSync will handle invalidation appropriately
+            console.log("🏁 Match mutation settled");
         },
     });
 
@@ -325,8 +350,8 @@ export const useMatchResults = (teams: Team[] = []) => {
             }
         },
         onSettled: () => {
-            queryClient.invalidateQueries({ queryKey: MATCHES_QUERY_KEY });
-            queryClient.invalidateQueries({ queryKey: STATS_QUERY_KEY });
+            // Don't invalidate immediately after success to avoid refetch loops
+            console.log("🏁 Remove match mutation settled");
         },
     });
 
@@ -377,8 +402,8 @@ export const useMatchResults = (teams: Team[] = []) => {
             autoSync(queryClient);
         },
         onSettled: () => {
-            queryClient.invalidateQueries({ queryKey: MATCHES_QUERY_KEY });
-            queryClient.invalidateQueries({ queryKey: STATS_QUERY_KEY });
+            // Don't invalidate immediately after success to avoid refetch loops
+            console.log("🏁 Clear matches mutation settled");
         },
     });
 
