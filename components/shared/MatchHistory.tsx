@@ -12,20 +12,10 @@ import {
     AlertDialogAction,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { MatchResult } from "@/types/team";
+import { useMatchResults } from "@/hooks/useMatchResult";
 
-<<<<<<< HEAD
 export default function MatchHistory() {
     const { matches, removeMatch } = useMatchResults();
-=======
-interface MatchHistoryProps {
-    matches: MatchResult[];
-    removeMatch: (index: number) => void;
-}
-
-export default function MatchHistory({ matches, removeMatch }: MatchHistoryProps) {
-    const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
->>>>>>> d91965a8bff51d5d9fdafa1e262d9d0245df6acb
 
     if (matches.length === 0) {
         return (
@@ -51,13 +41,8 @@ export default function MatchHistory({ matches, removeMatch }: MatchHistoryProps
                 </h2>
             </div>
 
-<<<<<<< HEAD
             <ul className="space-y-3 max-h-[500px] overflow-y-auto scrollbar-hide pr-2">
                 {matches.map((match) => {
-=======
-            <ul className="space-y-2 max-h-[400px] overflow-y-auto scrollbar-hide pr-1">
-                {matches.map((match, index) => {
->>>>>>> d91965a8bff51d5d9fdafa1e262d9d0245df6acb
                     const isDraw = match.scoreA === match.scoreB;
                     const teamAWins = match.scoreA > match.scoreB;
                     const scoreAClass = isDraw
@@ -83,13 +68,8 @@ export default function MatchHistory({ matches, removeMatch }: MatchHistoryProps
 
                     return (
                         <li
-<<<<<<< HEAD
                             key={match.id}
                             className="bg-gradient-to-r from-slate-50 to-white dark:from-slate-800 dark:to-slate-700 rounded-xl shadow-sm border border-slate-200 dark:border-slate-600 hover:shadow-md transition-all duration-200 p-4"
-=======
-                            key={index}
-                            className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-all duration-200 p-3"
->>>>>>> d91965a8bff51d5d9fdafa1e262d9d0245df6acb
                         >
                             <div className="flex items-center gap-2">
                                 {/* Team A */}
@@ -127,12 +107,7 @@ export default function MatchHistory({ matches, removeMatch }: MatchHistoryProps
                                         <Button
                                             variant="ghost"
                                             size="icon"
-<<<<<<< HEAD
                                             className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950 flex-shrink-0"
-=======
-                                            className="text-gray-600 hover:text-black hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-800 flex-shrink-0 h-7 w-7"
-                                            onClick={() => setDeleteIndex(index)}
->>>>>>> d91965a8bff51d5d9fdafa1e262d9d0245df6acb
                                         >
                                             <X className="w-3 h-3" />
                                         </Button>

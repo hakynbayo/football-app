@@ -199,7 +199,6 @@ const MatchInput: FC<MatchInputProps> = ({ teams, onSubmit }) => {
     return (
         <div className="space-y-6">
             {successMessage && (
-<<<<<<< HEAD
                 <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-4 flex items-center gap-3">
                     <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
                     <p className="text-green-800 dark:text-green-200 font-medium">
@@ -213,25 +212,6 @@ const MatchInput: FC<MatchInputProps> = ({ teams, onSubmit }) => {
                     <strong>Note:</strong> Select two different teams, enter scores, then
                     assign goalscorers and assists for each goal.
                 </p>
-=======
-                <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 flex items-center gap-3">
-                    <div className="w-8 h-8 bg-black dark:bg-white rounded-full flex items-center justify-center flex-shrink-0">
-                        <CheckCircle2 className="w-5 h-5 text-white dark:text-black" />
-                    </div>
-                    <p className="text-black dark:text-white font-medium">{successMessage}</p>
-                </div>
-            )}
-
-            <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4">
-                <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-black dark:bg-white rounded-full flex items-center justify-center flex-shrink-0">
-                        <Trophy className="w-4 h-4 text-white dark:text-black" />
-                    </div>
-                    <p className="text-sm text-black dark:text-white">
-                        Select teams and enter scores to track match results
-                    </p>
-                </div>
->>>>>>> d91965a8bff51d5d9fdafa1e262d9d0245df6acb
             </div>
 
             <div className="space-y-6">
@@ -344,13 +324,8 @@ const MatchInput: FC<MatchInputProps> = ({ teams, onSubmit }) => {
                 <AlertDialog open={showDialog} onOpenChange={setShowDialog}>
                     <AlertDialogTrigger asChild>
                         <Button
-<<<<<<< HEAD
                             className="w-full h-12 text-base bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 flex items-center gap-2"
                             disabled={!canSubmit}
-=======
-                            className="w-full h-12 text-base bg-black hover:bg-gray-800 text-white dark:bg-white dark:hover:bg-gray-200 dark:text-black flex items-center gap-2"
-                            disabled={!isValid}
->>>>>>> d91965a8bff51d5d9fdafa1e262d9d0245df6acb
                             onClick={() => setShowDialog(true)}
                         >
                             <Trophy className="w-5 h-5" />
@@ -365,31 +340,21 @@ const MatchInput: FC<MatchInputProps> = ({ teams, onSubmit }) => {
                             <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
                                 <div className="flex items-center justify-center gap-4 text-lg font-semibold">
                                     <div className="text-center">
-<<<<<<< HEAD
                                         <div className="text-blue-600 dark:text-blue-400">
                                             {teamA}
                                         </div>
                                         <div className="text-2xl text-blue-700 dark:text-blue-300 mt-1">
                                             {scoreA}
                                         </div>
-=======
-                                        <div className="text-black dark:text-white">{teamA}</div>
-                                        <div className="text-2xl text-black dark:text-white mt-1">{scoreA}</div>
->>>>>>> d91965a8bff51d5d9fdafa1e262d9d0245df6acb
                                     </div>
                                     <div className="text-gray-400">-</div>
                                     <div className="text-center">
-<<<<<<< HEAD
                                         <div className="text-purple-600 dark:text-purple-400">
                                             {teamB}
                                         </div>
                                         <div className="text-2xl text-purple-700 dark:text-purple-300 mt-1">
                                             {scoreB}
                                         </div>
-=======
-                                        <div className="text-black dark:text-white">{teamB}</div>
-                                        <div className="text-2xl text-black dark:text-white mt-1">{scoreB}</div>
->>>>>>> d91965a8bff51d5d9fdafa1e262d9d0245df6acb
                                     </div>
                                 </div>
                             </div>
