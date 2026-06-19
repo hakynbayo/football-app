@@ -2,7 +2,10 @@ import type { BetterSQLite3Database } from "drizzle-orm/better-sqlite3";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import * as schema from "./schema";
 
-type Database = BetterSQLite3Database<typeof schema> | LibSQLDatabase<typeof schema> | null;
+type Database =
+  | BetterSQLite3Database<typeof schema>
+  | LibSQLDatabase<typeof schema>
+  | null;
 
 // Determine which database to use based on environment
 // Use Turso if URL is provided, otherwise use local SQLite
@@ -22,7 +25,9 @@ try {
     const tursoAuthToken = process.env.TURSO_AUTH_TOKEN;
 
     if (!tursoUrl) {
-      console.warn("TURSO_DATABASE_URL not found. Database will not be available.");
+      console.warn(
+        "TURSO_DATABASE_URL not found. Database will not be available.",
+      );
     } else {
       const client = createClient({
         url: tursoUrl,
