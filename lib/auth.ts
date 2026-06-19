@@ -6,7 +6,6 @@ import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { nanoid } from "nanoid";
 
-// Extend the authConfig with database operations
 const configWithDb = {
   providers: [
     Credentials({
@@ -17,62 +16,44 @@ const configWithDb = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          console.log("❌ Auth: Missing credentials");
           return null;
         }
 
         try {
-          // Check if database is available
           if (!db) {
-            console.error("❌ Auth: Database not initialized");
-            throw new Error("Database unavailable");
+            return null;
           }
 
-          console.log(
-            "✅ Auth: Database available, attempting login for:",
-            credentials.email
-          );
-
-          // Support both email and username login
           const emailOrUsername = credentials.email as string;
           const userResults = await db
             .select()
             .from(users)
             .where(eq(users.email, emailOrUsername));
 
-          console.log(`📊 Auth: Found ${userResults.length} users by email`);
-
           let user = userResults[0];
 
-          // If not found by email, try by username
+          // If not found by email, try by username (name field)
           if (!user) {
-            console.log("🔍 Auth: Searching by username...");
-            const allUsers = await db.select().from(users);
-            console.log(`📊 Auth: Total users in database: ${allUsers.length}`);
-            const foundUser = allUsers.find(
-              (u) => u.name?.toLowerCase() === emailOrUsername.toLowerCase()
-            );
-            if (!foundUser) {
-              console.log("❌ Auth: User not found");
+            const usernameResults = await db
+              .select()
+              .from(users)
+              .where(eq(users.name, emailOrUsername));
+
+            if (usernameResults.length === 0) {
               return null;
             }
-            user = foundUser;
-            console.log("✅ Auth: User found by username");
-          } else {
-            console.log("✅ Auth: User found by email");
+            user = usernameResults[0];
           }
 
           const isValid = await bcrypt.compare(
             credentials.password as string,
-            user.passwordHash
+            user.passwordHash,
           );
 
           if (!isValid) {
-            console.log("❌ Auth: Invalid password");
             return null;
           }
 
-          console.log("✅ Auth: Login successful for:", user.email);
           return {
             id: user.id,
             name: user.name,
@@ -80,8 +61,7 @@ const configWithDb = {
             role: user.role,
           };
         } catch (error) {
-          console.error("❌ Auth: Authorization error:", error);
-          // Return null on error to prevent leaking error details
+          console.error("Auth error:", error);
           return null;
         }
       },
@@ -92,26 +72,19 @@ const configWithDb = {
 export const { handlers, signIn, signOut, auth } = NextAuth({
   ...configWithDb,
   secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
-  trustHost: true, // Required for Netlify deployment
+  trustHost: true,
   callbacks: {
     async session({ session, token }) {
-      console.log(
-        "🔄 Session callback - Creating session for user:",
-        token.sub
-      );
       if (session.user) {
         session.user.id = token.sub!;
         session.user.role = token.role as string;
       }
-      console.log("✅ Session created:", session);
       return session;
     },
     async jwt({ token, user }) {
-      console.log("🔄 JWT callback - Token:", token?.sub, "User:", user?.id);
       if (user) {
         token.sub = user.id;
         token.role = user.role;
-        console.log("✅ JWT token updated with user data");
       }
       return token;
     },
@@ -127,11 +100,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 export async function registerUser(
   name: string,
   email: string,
-  password: string
+  password: string,
 ) {
   if (!db) {
     throw new Error(
-      "Database unavailable. SQLite is not supported on serverless platforms like Netlify. Please use a cloud database."
+      "Database unavailable. SQLite is not supported on serverless platforms like Netlify. Please use a cloud database.",
     );
   }
 
@@ -152,7 +125,7 @@ export async function registerUser(
     name,
     email,
     passwordHash,
-    role: "user", // Default role for new registrations
+    role: "user",
     createdAt: new Date(),
   });
 

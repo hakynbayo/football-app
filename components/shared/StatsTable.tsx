@@ -1,7 +1,7 @@
 import { FC, useState } from "react";
 import { TeamStats, Team } from "@/types/team";
 import { Trophy, Medal, CheckCircle } from "lucide-react";
-import PasswordDialog from "./PasswordDialog";
+import { useSession } from "next-auth/react";
 
 interface StatsTableProps {
     stats: TeamStats[];
@@ -11,7 +11,8 @@ interface StatsTableProps {
 
 const StatsTable: FC<StatsTableProps> = ({ stats, teams, onFinish }) => {
     const [isFinishing, setIsFinishing] = useState(false);
-    const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+    const { data: session } = useSession();
+    const isAdmin = session?.user?.role === "admin";
 
     const sortedStats = [...stats].sort((a, b) => {
         if (b.points !== a.points) return b.points - a.points;
@@ -41,30 +42,18 @@ const StatsTable: FC<StatsTableProps> = ({ stats, teams, onFinish }) => {
 
     const handleFinish = () => {
         if (sortedStats.length > 0 && onFinish) {
-            setShowPasswordDialog(true);
-        }
-    };
-
-    const handlePasswordConfirm = (password: string) => {
-        if (password === "256256") {
-            setShowPasswordDialog(false);
             setIsFinishing(true);
-
             const winningTeamName = sortedStats[0].name;
             const winningTeam = teams.find(team => team.name === winningTeamName);
-            if (winningTeam && onFinish) {
+            if (winningTeam) {
                 onFinish(winningTeam);
-                // Reset the finishing state after a brief delay
                 setTimeout(() => {
                     setIsFinishing(false);
                 }, 1000);
+            } else {
+                setIsFinishing(false);
             }
         }
-        // Password validation is handled by the PasswordDialog component
-    };
-
-    const handlePasswordDialogClose = () => {
-        setShowPasswordDialog(false);
     };
 
     return (
@@ -99,7 +88,7 @@ const StatsTable: FC<StatsTableProps> = ({ stats, teams, onFinish }) => {
                                         Loss
                                     </th>
                                     <th className="py-3 px-4 text-center text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                                        Goals
+                                        GD
                                     </th>
                                 </tr>
                             </thead>
@@ -136,8 +125,10 @@ const StatsTable: FC<StatsTableProps> = ({ stats, teams, onFinish }) => {
                                         <td className="py-4 px-4 whitespace-nowrap text-center text-sm text-red-600 dark:text-red-400 font-medium">
                                             {team.losses}
                                         </td>
-                                        <td className="py-4 px-4 whitespace-nowrap text-center text-sm text-slate-600 dark:text-slate-400 font-medium">
-                                            {team.goals}
+                                        <td className="py-4 px-4 whitespace-nowrap text-center text-sm font-medium">
+                                            <span className={team.goals > 0 ? "text-green-600 dark:text-green-400" : team.goals < 0 ? "text-red-600 dark:text-red-400" : "text-slate-600 dark:text-slate-400"}>
+                                                {team.goals > 0 ? `+${team.goals}` : team.goals}
+                                            </span>
                                         </td>
                                     </tr>
                                 ))}
@@ -147,8 +138,8 @@ const StatsTable: FC<StatsTableProps> = ({ stats, teams, onFinish }) => {
                 </div>
             </div>
 
-            {/* Finish Button */}
-            {sortedStats.length > 0 && onFinish && (
+            {/* Finish Button - Admin only */}
+            {sortedStats.length > 0 && onFinish && isAdmin && (
                 <div className="flex justify-center">
                     <button
                         onClick={handleFinish}
@@ -163,15 +154,6 @@ const StatsTable: FC<StatsTableProps> = ({ stats, teams, onFinish }) => {
                     </button>
                 </div>
             )}
-
-            {/* Password Dialog */}
-            <PasswordDialog
-                isOpen={showPasswordDialog}
-                onClose={handlePasswordDialogClose}
-                onConfirm={handlePasswordConfirm}
-                title="Confirm Finish Action"
-                message="Please enter the password to finish the league and save the team of the week:"
-            />
         </div>
     );
 };

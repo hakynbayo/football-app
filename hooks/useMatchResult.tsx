@@ -1,161 +1,164 @@
-import { useEffect, useState } from "react";
-import { MatchResult, TeamStats } from "@/types/team";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { MatchResult, TeamStats, GoalEvent } from "@/types/team";
+
+const MATCHES_QUERY_KEY = ["matches"] as const;
+const STATS_QUERY_KEY = ["stats"] as const;
+const LEADERBOARD_QUERY_KEY = ["leaderboard"] as const;
+
+async function fetchMatches(): Promise<MatchResult[]> {
+    const response = await fetch("/api/data/matches");
+    if (response.status === 401) return [];
+    if (!response.ok) throw new Error("Failed to fetch matches");
+    const data = await response.json();
+    return data.matches || [];
+}
+
+async function fetchStats(): Promise<TeamStats[]> {
+    const response = await fetch("/api/data/stats");
+    if (response.status === 401) return [];
+    if (!response.ok) throw new Error("Failed to fetch stats");
+    const data = await response.json();
+    return data.stats || [];
+}
 
 export const useMatchResults = () => {
-    const [matches, setMatches] = useState<MatchResult[]>([]);
-    const [stats, setStats] = useState<TeamStats[]>([]);
-    const [loading, setLoading] = useState(true);
+    const queryClient = useQueryClient();
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const [matchesRes, statsRes] = await Promise.all([
-                    fetch("/api/data/matches"),
-                    fetch("/api/data/stats"),
-                ]);
+    const { data: matches = [], isLoading: matchesLoading } = useQuery({
+        queryKey: MATCHES_QUERY_KEY,
+        queryFn: fetchMatches,
+    });
 
-                if (matchesRes.ok) {
-                    const matchesData = await matchesRes.json();
-                    const matches = matchesData.matches || [];
-                    setMatches(matches);
-                    console.log("✅ Matches loaded from database:", matches.length);
-                } else if (matchesRes.status === 401) {
-                    console.warn("⚠️ Not authenticated - cannot fetch matches");
-                } else {
-                    console.error("❌ Error fetching matches:", matchesRes.status);
-                }
+    const { data: stats = [], isLoading: statsLoading } = useQuery({
+        queryKey: STATS_QUERY_KEY,
+        queryFn: fetchStats,
+    });
 
-                if (statsRes.ok) {
-                    const statsData = await statsRes.json();
-                    const stats = statsData.stats || [];
-                    setStats(stats);
-                    console.log("✅ Stats loaded from database:", stats.length);
-                } else if (statsRes.status === 401) {
-                    console.warn("⚠️ Not authenticated - cannot fetch stats");
-                } else {
-                    console.error("❌ Error fetching stats:", statsRes.status);
-                }
-            } catch (error) {
-                console.error("❌ Error fetching matches/stats:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchData();
-    }, []);
-
-    const updateStatsFromMatches = async (matchList: MatchResult[]) => {
-        const newStats: TeamStats[] = [];
-
-        const updateTeam = (teamName: string, update: Partial<TeamStats>) => {
-            let team = newStats.find((t) => t.name === teamName);
-            if (!team) {
-                team = { name: teamName, played: 0, wins: 0, draws: 0, losses: 0, goals: 0, points: 0 };
-                newStats.push(team);
-            }
-            Object.assign(team, {
-                played: team.played + 1,
-                goals: team.goals + (update.goals || 0),
-                wins: team.wins + (update.wins || 0),
-                draws: team.draws + (update.draws || 0),
-                losses: team.losses + (update.losses || 0),
-                points: team.points + (update.points || 0),
-            });
-        };
-
-        for (const match of matchList) {
-            const { teamA, teamB, scoreA, scoreB } = match;
-
-            if (scoreA > scoreB) {
-                // Team A wins: gains its own goals, Team B loses: subtracts opponent's goals
-                updateTeam(teamA, { wins: 1, points: 3, goals: scoreA });
-                updateTeam(teamB, { losses: 1, goals: -scoreA });
-            } else if (scoreB > scoreA) {
-                // Team B wins: gains its own goals, Team A loses: subtracts opponent's goals
-                updateTeam(teamB, { wins: 1, points: 3, goals: scoreB });
-                updateTeam(teamA, { losses: 1, goals: -scoreB });
-            } else {
-                // Draw: no goal change
-                updateTeam(teamA, { draws: 1, points: 1 });
-                updateTeam(teamB, { draws: 1, points: 1 });
-            }
-        }
-
-        setStats(newStats);
-        try {
-            await fetch("/api/data/stats", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ stats: newStats }),
-            });
-        } catch (error) {
-            console.error("Error saving stats:", error);
-        }
-    };
-
-    const addMatchResult = async (teamA: string, teamB: string, scoreA: number, scoreB: number) => {
-        const newMatch: MatchResult = { teamA, teamB, scoreA, scoreB };
-        const updatedMatches = [...matches, newMatch];
-        setMatches(updatedMatches);
-        
-        try {
+    const addMatchMutation = useMutation({
+        mutationFn: async ({
+            teamA,
+            teamB,
+            scoreA,
+            scoreB,
+            goals,
+        }: {
+            teamA: string;
+            teamB: string;
+            scoreA: number;
+            scoreB: number;
+            goals?: GoalEvent[];
+        }) => {
             const response = await fetch("/api/data/matches", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ matches: updatedMatches }),
+                body: JSON.stringify({ teamA, teamB, scoreA, scoreB }),
             });
-            if (response.ok) {
-                console.log("✅ Match saved to database");
-                await updateStatsFromMatches(updatedMatches);
-            } else if (response.status === 401) {
-                console.error("❌ Not authenticated - cannot save match");
-            } else {
-                console.error("❌ Error saving match:", response.status);
-            }
-        } catch (error) {
-            console.error("❌ Error saving match:", error);
-        }
-    };
+            if (!response.ok) throw new Error("Failed to save match");
+            const data = await response.json();
+            const matchId = data.match?.id;
 
-    const removeMatch = async (index: number) => {
-        const updatedMatches = matches.filter((_, i) => i !== index);
-        setMatches(updatedMatches);
-        
-        try {
-            const response = await fetch("/api/data/matches", {
-                method: "POST",
+            // Save goal events if provided
+            if (matchId && goals && goals.length > 0) {
+                const cleanGoals = goals.map((g) => ({
+                    ...g,
+                    assist: g.assist === "none" ? null : g.assist,
+                }));
+                await fetch("/api/data/goals", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ matchId, goals: cleanGoals }),
+                });
+            }
+
+            return data;
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: MATCHES_QUERY_KEY });
+            queryClient.invalidateQueries({ queryKey: STATS_QUERY_KEY });
+            queryClient.invalidateQueries({ queryKey: LEADERBOARD_QUERY_KEY });
+        },
+    });
+
+    const removeMatchMutation = useMutation({
+        mutationFn: async (id: string) => {
+            // Delete goal events for this match first
+            await fetch("/api/data/goals", {
+                method: "DELETE",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ matches: updatedMatches }),
+                body: JSON.stringify({ matchId: id }),
             });
-            if (response.ok) {
-                await updateStatsFromMatches(updatedMatches);
+            const response = await fetch("/api/data/matches", {
+                method: "DELETE",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id }),
+            });
+            if (!response.ok) throw new Error("Failed to delete match");
+        },
+        onMutate: async (id) => {
+            await queryClient.cancelQueries({ queryKey: MATCHES_QUERY_KEY });
+            const previous = queryClient.getQueryData<MatchResult[]>(MATCHES_QUERY_KEY);
+            queryClient.setQueryData(
+                MATCHES_QUERY_KEY,
+                (old: MatchResult[] | undefined) => old?.filter((m) => m.id !== id) ?? [],
+            );
+            return { previous };
+        },
+        onError: (_err, _id, context) => {
+            if (context?.previous) {
+                queryClient.setQueryData(MATCHES_QUERY_KEY, context.previous);
             }
-        } catch (error) {
-            console.error("Error removing match:", error);
-        }
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: MATCHES_QUERY_KEY });
+            queryClient.invalidateQueries({ queryKey: STATS_QUERY_KEY });
+            queryClient.invalidateQueries({ queryKey: LEADERBOARD_QUERY_KEY });
+        },
+    });
+
+    const clearMatchesMutation = useMutation({
+        mutationFn: async () => {
+            // Delete all goal events
+            await fetch("/api/data/goals", {
+                method: "DELETE",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ matchId: "all" }),
+            });
+            const response = await fetch("/api/data/matches", {
+                method: "DELETE",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id: "all" }),
+            });
+            if (!response.ok) throw new Error("Failed to clear matches");
+        },
+        onMutate: async () => {
+            await queryClient.cancelQueries({ queryKey: MATCHES_QUERY_KEY });
+            await queryClient.cancelQueries({ queryKey: STATS_QUERY_KEY });
+            queryClient.setQueryData(MATCHES_QUERY_KEY, []);
+            queryClient.setQueryData(STATS_QUERY_KEY, []);
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: MATCHES_QUERY_KEY });
+            queryClient.invalidateQueries({ queryKey: STATS_QUERY_KEY });
+            queryClient.invalidateQueries({ queryKey: LEADERBOARD_QUERY_KEY });
+        },
+    });
+
+    const addMatchResult = (
+        teamA: string,
+        teamB: string,
+        scoreA: number,
+        scoreB: number,
+        goals?: GoalEvent[],
+    ) => {
+        addMatchMutation.mutate({ teamA, teamB, scoreA, scoreB, goals });
     };
 
-    const clearMatchResults = async () => {
-        setMatches([]);
-        setStats([]);
-        
-        try {
-            await Promise.all([
-                fetch("/api/data/matches", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ matches: [] }),
-                }),
-                fetch("/api/data/stats", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ stats: [] }),
-                }),
-            ]);
-        } catch (error) {
-            console.error("Error clearing matches/stats:", error);
-        }
+    const removeMatch = (id: string) => {
+        removeMatchMutation.mutate(id);
+    };
+
+    const clearMatchResults = () => {
+        clearMatchesMutation.mutate();
     };
 
     return {
@@ -164,6 +167,6 @@ export const useMatchResults = () => {
         addMatchResult,
         removeMatch,
         clearMatchResults,
-        loading,
+        loading: matchesLoading || statsLoading,
     };
 };

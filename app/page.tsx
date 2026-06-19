@@ -1,4 +1,4 @@
-"use client"
+"use client";
 import { ResetTeamsButton } from "@/components/ResetModal";
 import MatchHistory from "@/components/shared/MatchHistory";
 import MatchInput from "@/components/shared/MatchInput";
@@ -9,7 +9,9 @@ import TeamOfTheWeekComponent from "@/components/shared/TeamOfTheWeek";
 import { useMatchResults } from "@/hooks/useMatchResult";
 import { useTeams } from "@/hooks/useTeams";
 import { useTeamOfTheWeek } from "@/hooks/useTeamOfTheWeek";
-import { Team } from "@/types/team";
+import { useLeaderboard } from "@/hooks/useLeaderboard";
+import { Team, GoalEvent } from "@/types/team";
+import GoalLeaderboard from "@/components/shared/GoalLeaderboard";
 import {
   Users,
   Trophy,
@@ -18,49 +20,26 @@ import {
   Plus,
   LogIn,
   LogOut,
-  User
+  User,
+  Target,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
-type TabType = "teams" | "matches" | "history" | "standings";
+type TabType = "teams" | "matches" | "history" | "standings" | "leaderboard";
 
 export default function HomePage() {
-  const { teams, setTeams } = useTeams();
+  const { teams, setTeams, updateTeam, deleteTeam } = useTeams();
   const [playerText, setPlayerText] = useState("");
   const { stats, addMatchResult, clearMatchResults } = useMatchResults();
-  const { teamOfWeek, saveTeamOfTheWeek, getTeamOfWeekByMonth } = useTeamOfTheWeek();
+  const { teamOfWeek, saveTeamOfTheWeek, getTeamOfWeekByMonth } =
+    useTeamOfTheWeek();
+  const { leaderboard } = useLeaderboard();
   const [activeTab, setActiveTab] = useState<TabType>("teams");
   const { data: session, status } = useSession();
   const router = useRouter();
 
-  // Check database connection on mount
-  useEffect(() => {
-    const checkConnection = async () => {
-      try {
-        const response = await fetch('/api/health');
-        const data = await response.json();
-        
-        if (data.turso === "configured" && data.database === "connected") {
-          console.log("✅ TURSO DATABASE CONNECTED");
-          console.log("📊 Database Status:", data);
-        } else if (data.database === "connected") {
-          console.log("✅ LOCAL SQLITE CONNECTED");
-          console.log("📊 Database Status:", data);
-        } else {
-          console.warn("⚠️ DATABASE NOT CONNECTED");
-          console.log("📊 Database Status:", data);
-        }
-      } catch (error) {
-        console.error("❌ Failed to check database connection:", error);
-      }
-    };
-
-    checkConnection();
-  }, []);
-
-  // Check if user is admin
   const isAdmin = session?.user?.role === "admin";
 
   const handleLogin = () => {
@@ -71,23 +50,20 @@ export default function HomePage() {
     try {
       const result = await signOut({
         redirect: false,
-        callbackUrl: "/login"
+        callbackUrl: "/login",
       });
-      // Force redirect after sign out
       if (result) {
         window.location.href = "/login";
       } else {
         router.push("/login");
       }
-    } catch (error) {
-      console.error("Logout error:", error);
-      // Force redirect on error
+    } catch {
       router.push("/login");
     }
   };
 
-  const handleGenerateTeams = (teams: Team[]) => {
-    setTeams(teams);
+  const handleGenerateTeams = (newTeams: Team[]) => {
+    setTeams(newTeams);
   };
 
   const handleAddTeam = () => {
@@ -96,26 +72,37 @@ export default function HomePage() {
       return;
     }
 
-    // Get the number of players from the first existing team
     const playersPerTeam = teams[0].players.length;
 
     const newTeam: Team = {
       name: "Team New Player",
-      players: Array.from({ length: playersPerTeam }, (_, i) => `New Player ${i + 1}`),
+      players: Array.from(
+        { length: playersPerTeam },
+        (_, i) => `New Player ${i + 1}`,
+      ),
     };
 
     setTeams([...teams, newTeam]);
   };
 
-  const handleUpdateTeam = (index: number, updatedTeam: Team) => {
-    const updatedTeams = [...teams];
-    updatedTeams[index] = updatedTeam;
-    setTeams(updatedTeams);
+  const handleUpdateTeam = (_index: number, updatedTeam: Team) => {
+    if (updatedTeam.id) {
+      updateTeam(updatedTeam);
+    } else {
+      // Fallback: replace all teams (for teams without IDs yet)
+      const updatedTeams = teams.map((t, i) => (i === _index ? updatedTeam : t));
+      setTeams(updatedTeams);
+    }
   };
 
   const handleDeleteTeam = (index: number) => {
-    const updatedTeams = teams.filter((_, i) => i !== index);
-    setTeams(updatedTeams);
+    const team = teams[index];
+    if (team.id) {
+      deleteTeam(team.id);
+    } else {
+      const updatedTeams = teams.filter((_, i) => i !== index);
+      setTeams(updatedTeams);
+    }
   };
 
   const handleFinish = (winningTeam: Team) => {
@@ -128,11 +115,12 @@ export default function HomePage() {
     { id: "matches" as TabType, label: "Matches", icon: PlusCircle },
     { id: "history" as TabType, label: "History", icon: History },
     { id: "standings" as TabType, label: "Table", icon: Trophy },
+    { id: "leaderboard" as TabType, label: "Goals", icon: Target },
   ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 flex flex-col pb-20">
-      {/* Header - Fixed at top */}
+      {/* Header */}
       <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-10 shadow-sm">
         <div className="max-w-2xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
@@ -154,10 +142,12 @@ export default function HomePage() {
                     <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
                       {session.user?.name || session.user?.email}
                     </span>
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${session.user?.role === "admin"
-                      ? "bg-blue-600 text-white"
-                      : "bg-green-600 text-white"
-                      }`}>
+                    <span
+                      className={`text-xs px-2 py-0.5 rounded-full font-medium ${session.user?.role === "admin"
+                        ? "bg-blue-600 text-white"
+                        : "bg-green-600 text-white"
+                        }`}
+                    >
                       {session.user?.role === "admin" ? "Admin" : "User"}
                     </span>
                   </div>
@@ -184,7 +174,7 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* Main Content - Scrollable */}
+      {/* Main Content */}
       <main className="flex-1 overflow-y-auto">
         <div className="max-w-2xl mx-auto px-4 py-6">
           {/* Teams Tab */}
@@ -210,35 +200,39 @@ export default function HomePage() {
 
               {!isAdmin && teams.length === 0 && (
                 <div className="bg-slate-100 dark:bg-slate-700 rounded-xl p-6 text-center">
-                  <p className="text-muted-foreground">No teams available. Please contact an admin to generate teams.</p>
+                  <p className="text-muted-foreground">
+                    No teams available. Please contact an admin to generate
+                    teams.
+                  </p>
                 </div>
               )}
 
               {teams.length > 0 && (
-                <><div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
-                      Generated Teams
-                    </h2>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-muted-foreground bg-slate-100 dark:bg-slate-700 px-3 py-1 rounded-full">
-                        {teams.length} {teams.length === 1 ? "team" : "teams"}
-                      </span>
+                <>
+                  <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
+                        Generated Teams
+                      </h2>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground bg-slate-100 dark:bg-slate-700 px-3 py-1 rounded-full">
+                          {teams.length}{" "}
+                          {teams.length === 1 ? "team" : "teams"}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {teams.map((team, index) => (
+                        <TeamCard
+                          key={team.id || index}
+                          team={team}
+                          teamIndex={index}
+                          onUpdateTeam={handleUpdateTeam}
+                          onDeleteTeam={handleDeleteTeam}
+                        />
+                      ))}
                     </div>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {teams.map((team, index) => (
-                      <TeamCard
-                        key={index}
-                        team={team}
-                        teamIndex={index}
-                        onUpdateTeam={handleUpdateTeam}
-                        onDeleteTeam={handleDeleteTeam}
-                      />
-                    ))}
-                  </div>
-
-                </div>
                   {isAdmin && (
                     <button
                       onClick={handleAddTeam}
@@ -249,9 +243,7 @@ export default function HomePage() {
                     </button>
                   )}
                 </>
-
               )}
-
             </div>
           )}
 
@@ -269,15 +261,21 @@ export default function HomePage() {
                     </h2>
                   </div>
                   <MatchInput
-                    teams={teams.map((t) => t.name)}
-                    onSubmit={(teamA, teamB, scoreA, scoreB) =>
-                      addMatchResult(teamA, teamB, Number(scoreA), Number(scoreB))
-                    }
+                    teams={teams}
+                    onSubmit={(
+                      teamA: string,
+                      teamB: string,
+                      scoreA: number,
+                      scoreB: number,
+                      goals: GoalEvent[],
+                    ) => addMatchResult(teamA, teamB, scoreA, scoreB, goals)}
                   />
                 </div>
               ) : (
                 <div className="bg-slate-100 dark:bg-slate-700 rounded-xl p-6 text-center">
-                  <p className="text-muted-foreground">Only admins can enter match results.</p>
+                  <p className="text-muted-foreground">
+                    Only admins can enter match results.
+                  </p>
                 </div>
               )}
             </div>
@@ -295,7 +293,6 @@ export default function HomePage() {
           {/* Standings Tab */}
           {activeTab === "standings" && (
             <div className="space-y-6 animate-in slide-in-from-right duration-200">
-              {/* League Standings */}
               <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
                 <div className="flex items-center gap-2 mb-4">
                   <div className="p-2 bg-yellow-100 dark:bg-yellow-900 rounded-lg">
@@ -312,17 +309,33 @@ export default function HomePage() {
                 />
               </div>
 
-              {/* Team of the Week Section */}
               <TeamOfTheWeekComponent
                 teamOfWeek={teamOfWeek}
                 getTeamOfWeekByMonth={getTeamOfWeekByMonth}
               />
             </div>
           )}
+
+          {/* Leaderboard Tab */}
+          {activeTab === "leaderboard" && (
+            <div className="space-y-6 animate-in slide-in-from-right duration-200">
+              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
+                    <Target className="w-5 h-5 text-green-600 dark:text-green-400" />
+                  </div>
+                  <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
+                    Top Scorers & Assists
+                  </h2>
+                </div>
+                <GoalLeaderboard leaderboard={leaderboard} />
+              </div>
+            </div>
+          )}
         </div>
       </main>
 
-      {/* Bottom Navigation - Fixed at bottom */}
+      {/* Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 shadow-lg z-20">
         <div className="max-w-2xl mx-auto px-4 py-2">
           <div className="flex items-center justify-around">
@@ -338,11 +351,10 @@ export default function HomePage() {
                     : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700"
                     }`}
                 >
-                  <Icon className={`w-5 h-5 ${isActive ? "scale-110" : ""} transition-transform`} />
+                  <Icon
+                    className={`w-5 h-5 ${isActive ? "scale-110" : ""} transition-transform`}
+                  />
                   <span className="text-xs font-medium">{tab.label}</span>
-                  {isActive && (
-                    <div className="absolute -bottom-0 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-blue-600 dark:bg-blue-400 rounded-full" />
-                  )}
                 </button>
               );
             })}

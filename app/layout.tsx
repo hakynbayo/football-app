@@ -1,48 +1,24 @@
-"use client";
-
 import "./globals.css";
 import { Inter } from "next/font/google";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { SessionProvider } from "next-auth/react";
-import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
-import { Loader } from "lucide-react";
+import Providers from "@/components/Providers";
+import type { Metadata } from "next";
 
 const inter = Inter({ subsets: ["latin"] });
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 1000 * 60 * 5,
-      refetchOnWindowFocus: false,
-      retry: 1,
-    },
-  },
-});
+export const metadata: Metadata = {
+  title: "Football App",
+  description: "Team manager & match tracker",
+};
 
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const pathname = usePathname();
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    setLoading(true);
-    const timeout = setTimeout(() => setLoading(false), 500); // simulate loading for 500ms
-    return () => clearTimeout(timeout);
-  }, [pathname]);
-
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className}`}>
-        <SessionProvider>
-          <QueryClientProvider client={queryClient}>
-            {loading && <Loader />}
-            {children}
-          </QueryClientProvider>
-        </SessionProvider>
+      <body className={inter.className}>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

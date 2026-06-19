@@ -12,12 +12,10 @@ import {
     AlertDialogCancel,
     AlertDialogAction,
 } from "@/components/ui/alert-dialog";
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 
 export default function MatchHistory() {
     const { matches, removeMatch } = useMatchResults();
-    const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
 
     if (matches.length === 0) {
         return (
@@ -44,7 +42,7 @@ export default function MatchHistory() {
             </div>
 
             <ul className="space-y-3 max-h-[500px] overflow-y-auto scrollbar-hide pr-2">
-                {matches.map((match, index) => {
+                {matches.map((match) => {
                     const isDraw = match.scoreA === match.scoreB;
                     const teamAWins = match.scoreA > match.scoreB;
                     const scoreAClass = isDraw
@@ -60,7 +58,7 @@ export default function MatchHistory() {
 
                     return (
                         <li
-                            key={index}
+                            key={match.id}
                             className="bg-gradient-to-r from-slate-50 to-white dark:from-slate-800 dark:to-slate-700 rounded-xl shadow-sm border border-slate-200 dark:border-slate-600 hover:shadow-md transition-all duration-200 p-4"
                         >
                             <div className="flex items-center gap-3">
@@ -100,7 +98,6 @@ export default function MatchHistory() {
                                             variant="ghost"
                                             size="icon"
                                             className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950 flex-shrink-0"
-                                            onClick={() => setDeleteIndex(index)}
                                         >
                                             <X className="w-4 h-4" />
                                         </Button>
@@ -131,12 +128,8 @@ export default function MatchHistory() {
                                             <AlertDialogCancel>Cancel</AlertDialogCancel>
                                             <AlertDialogAction
                                                 onClick={() => {
-                                                    if (deleteIndex !== null) {
-                                                        removeMatch(deleteIndex);
-                                                        setDeleteIndex(null);
-                                                        setTimeout(() => {
-                                                            window.location.reload();
-                                                        }, 100);
+                                                    if (match.id) {
+                                                        removeMatch(match.id);
                                                     }
                                                 }}
                                                 className="bg-red-600 hover:bg-red-700"

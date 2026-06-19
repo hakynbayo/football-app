@@ -1,14 +1,12 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { appStats } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { matches } from "@/lib/db/schema";
 import { auth } from "@/lib/auth";
+import { TeamStats } from "@/types/team";
 
 export const runtime = "nodejs";
 
-const STATS_KEY = "main";
-
-// GET - Fetch stats
+// GET - Compute stats from matches (derived data, no separate table needed)
 export async function GET() {
   try {
     const session = await auth();
@@ -17,76 +15,72 @@ export async function GET() {
     }
 
     if (!db) {
-      return NextResponse.json({ error: "Database unavailable" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Database unavailable" },
+        { status: 500 },
+      );
     }
 
-    const result = await db
-      .select()
-      .from(appStats)
-      .where(eq(appStats.id, STATS_KEY));
+    const allMatches = await db.select().from(matches);
 
-    if (result.length === 0) {
-      return NextResponse.json({ stats: [] });
+    const statsMap = new Map<string, TeamStats>();
+
+    const getOrCreate = (name: string): TeamStats => {
+      let team = statsMap.get(name);
+      if (!team) {
+        team = {
+          name,
+          played: 0,
+          wins: 0,
+          draws: 0,
+          losses: 0,
+          goals: 0,
+          points: 0,
+        };
+        statsMap.set(name, team);
+      }
+      return team;
+    };
+
+    for (const match of allMatches) {
+      const teamA = getOrCreate(match.teamA);
+      const teamB = getOrCreate(match.teamB);
+
+      const gdA = match.scoreA - match.scoreB;
+      const gdB = match.scoreB - match.scoreA;
+
+      teamA.played += 1;
+      teamA.goals += gdA;
+      teamB.played += 1;
+      teamB.goals += gdB;
+
+      if (match.scoreA > match.scoreB) {
+        teamA.wins += 1;
+        teamA.points += 3;
+        teamB.losses += 1;
+      } else if (match.scoreB > match.scoreA) {
+        teamB.wins += 1;
+        teamB.points += 3;
+        teamA.losses += 1;
+      } else {
+        teamA.draws += 1;
+        teamA.points += 1;
+        teamB.draws += 1;
+        teamB.points += 1;
+      }
     }
 
-    const stats = JSON.parse(result[0].data);
+    const stats = Array.from(statsMap.values()).sort((a, b) => {
+      if (b.points !== a.points) return b.points - a.points;
+      return b.goals - a.goals;
+    });
+
     return NextResponse.json({ stats });
   } catch (error) {
-    console.error("Error fetching stats:", error);
+    console.error("Error computing stats:", error);
     return NextResponse.json(
-      { error: "Failed to fetch stats" },
-      { status: 500 }
+      { error: "Failed to compute stats" },
+      { status: 500 },
     );
   }
 }
-
-// POST - Save stats
-export async function POST(request: NextRequest) {
-  try {
-    const session = await auth();
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    if (!db) {
-      return NextResponse.json({ error: "Database unavailable" }, { status: 500 });
-    }
-
-    const { stats } = await request.json();
-
-    const data = JSON.stringify(stats);
-    const now = new Date();
-
-    const existing = await db
-      .select()
-      .from(appStats)
-      .where(eq(appStats.id, STATS_KEY));
-
-    if (existing.length > 0) {
-      await db
-        .update(appStats)
-        .set({
-          data,
-          updatedAt: now,
-          updatedBy: session.user.id,
-        })
-        .where(eq(appStats.id, STATS_KEY));
-    } else {
-      await db.insert(appStats).values({
-        id: STATS_KEY,
-        data,
-        updatedAt: now,
-        updatedBy: session.user.id,
-      });
-    }
-
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("Error saving stats:", error);
-    return NextResponse.json(
-      { error: "Failed to save stats" },
-      { status: 500 }
-    );
-  }
-}
-
