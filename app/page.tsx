@@ -143,8 +143,8 @@ export default function HomePage() {
                     </span>
                     <span
                       className={`text-xs px-2 py-0.5 rounded-full font-medium ${session.user?.role === "admin"
-                          ? "bg-blue-600 text-white"
-                          : "bg-green-600 text-white"
+                        ? "bg-blue-600 text-white"
+                        : "bg-green-600 text-white"
                         }`}
                     >
                       {session.user?.role === "admin" ? "Admin" : "User"}
@@ -323,7 +323,7 @@ export default function HomePage() {
                     Top Scorers & Assists
                   </h2>
                 </div>
-                <GoalLeaderboard leaderboard={leaderboard} />
+                <GoalLeaderboard leaderboard={leaderboard} teams={teams} />
               </div>
             </div>
           )}
@@ -342,8 +342,8 @@ export default function HomePage() {
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={`flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-all duration-200 flex-1 ${isActive
-                      ? "bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400"
-                      : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700"
+                    ? "bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400"
+                    : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700"
                     }`}
                 >
                   <Icon
