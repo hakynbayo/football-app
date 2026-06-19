@@ -56,11 +56,11 @@ const PlayerInputForm: FC<PlayerInputFormProps> = ({
 
     return (
         <div className="max-w-2xl mx-auto space-y-6">
-            <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4 flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
-                <div className="text-sm text-blue-800 dark:text-blue-200">
+            <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4 flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-black dark:text-white mt-0.5 flex-shrink-0" />
+                <div className="text-xs text-black dark:text-white">
                     <p className="font-medium mb-1">Tips for best results:</p>
-                    <ul className="list-disc list-inside space-y-1 text-blue-700 dark:text-blue-300">
+                    <ul className="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300">
                         <li>Enter at least 8 players (one name per line)</li>
                         <li>Teams are randomly generated for fairness</li>
                         <li>Adjust players per team to balance group sizes</li>
@@ -70,9 +70,9 @@ const PlayerInputForm: FC<PlayerInputFormProps> = ({
 
             <div className="space-y-4">
                 <div className="relative">
-                    <label className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">
+                    <label className="block text-sm font-medium mb-2 text-black dark:text-white">
                         Player Names
-                        <span className="ml-2 text-xs text-muted-foreground">
+                        <span className="ml-2 text-xs text-gray-600 dark:text-gray-400">
                             ({playerCount} {playerCount === 1 ? 'player' : 'players'})
                         </span>
                     </label>
@@ -85,13 +85,13 @@ const PlayerInputForm: FC<PlayerInputFormProps> = ({
                             className="resize-none text-base pr-10"
                         />
                         <div className="absolute top-3 right-3">
-                            <Users className="w-5 h-5 text-slate-400" />
+                            <Users className="w-5 h-5 text-gray-400" />
                         </div>
                     </div>
                 </div>
 
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 bg-slate-50 dark:bg-slate-800 p-4 rounded-lg border border-slate-200 dark:border-slate-700">
-                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300 flex-shrink-0">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <label className="text-sm font-medium text-black dark:text-white flex-shrink-0">
                         Players per team:
                     </label>
                     <div className="flex items-center gap-3 flex-1 w-full sm:w-auto">
@@ -103,14 +103,14 @@ const PlayerInputForm: FC<PlayerInputFormProps> = ({
                             onChange={(e) => setPlayersPerTeam(Number(e.target.value))}
                             className="w-full sm:w-24 text-center font-semibold"
                         />
-                        <span className="text-sm text-muted-foreground whitespace-nowrap">
+                        <span className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">
                             (~{playerCount > 0 ? Math.ceil(playerCount / playersPerTeam) : 0} teams)
                         </span>
                     </div>
                 </div>
 
                 <Button
-                    className="w-full sm:w-auto sm:mx-auto flex items-center gap-2 text-base h-12 px-8 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                    className="w-[60%] mx-auto flex items-center gap-2 text-sm h-12 px-8 bg-black hover:bg-gray-800 text-white dark:bg-white dark:hover:bg-gray-200 dark:text-black"
                     onClick={handleGenerate}
                     disabled={playerCount < 8}
                 >

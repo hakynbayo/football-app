@@ -20,10 +20,15 @@ export async function GET() {
       databaseStatus = "not_initialized";
       databaseType = "none";
     } else {
+<<<<<<< HEAD
       if (
         process.env.TURSO_DATABASE_URL &&
         process.env.NODE_ENV === "production"
       ) {
+=======
+      // Determine which database is being used
+      if (process.env.TURSO_DATABASE_URL) {
+>>>>>>> d91965a8bff51d5d9fdafa1e262d9d0245df6acb
         databaseType = "turso";
       } else {
         databaseType = "sqlite";

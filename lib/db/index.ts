@@ -5,7 +5,8 @@ import * as schema from "./schema";
 type Database = BetterSQLite3Database<typeof schema> | LibSQLDatabase<typeof schema> | null;
 
 // Determine which database to use based on environment
-const useTurso = process.env.TURSO_DATABASE_URL && process.env.NODE_ENV === "production";
+// Use Turso if URL is provided, otherwise use local SQLite
+const useTurso = !!process.env.TURSO_DATABASE_URL;
 
 let db: Database = null;
 

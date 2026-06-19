@@ -2,7 +2,7 @@
 
 import { FC, useState } from "react";
 import { TeamOfTheWeek } from "@/types/team";
-import { Trophy, Calendar, Users2, Filter } from "lucide-react";
+import { Trophy, Calendar, Filter } from "lucide-react";
 import {
     Select,
     SelectContent,
@@ -54,38 +54,38 @@ const TeamOfTheWeekComponent: FC<TeamOfTheWeekComponentProps> = ({
         : teamOfWeek ? [teamOfWeek] : [];
 
     return (
-        <div className="bg-gradient-to-br from-yellow-50 to-amber-50 dark:from-yellow-950 dark:to-amber-950 rounded-xl shadow-lg border-2 border-yellow-300 dark:border-yellow-700 p-6">
+        <div className="bg-white dark:bg-black rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 p-3">
             <Accordion type="single" collapsible className="w-full">
                 <AccordionItem value="team-of-week" className="border-none">
-                    <AccordionTrigger className="hover:no-underline">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 bg-yellow-500 rounded-lg shadow-lg">
-                                <Trophy className="w-6 h-6 text-white" />
+                    <AccordionTrigger className="hover:no-underline p-0">
+                        <div className="flex items-center gap-2">
+                            <div className="p-1.5 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                                <Trophy className="w-4 h-4 text-black dark:text-white" />
                             </div>
                             <div className="text-left">
-                                <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100">
+                                <h3 className="text-sm font-bold text-black dark:text-white">
                                     Team of the Week
                                 </h3>
                                 {teamOfWeek && (
-                                    <p className="text-sm text-slate-600 dark:text-slate-400">
+                                    <p className="text-xs text-gray-600 dark:text-gray-400">
                                         Last saved: {teamOfWeek.date}
                                     </p>
                                 )}
                                 {!teamOfWeek && (
-                                    <p className="text-sm text-slate-600 dark:text-slate-400">
+                                    <p className="text-xs text-gray-600 dark:text-gray-400">
                                         No team saved yet
                                     </p>
                                 )}
                             </div>
                         </div>
                     </AccordionTrigger>
-                    <AccordionContent>
+                    <AccordionContent className="pt-3">
                         {/* Month Filter */}
                         {teamOfWeek && monthOptions.length > 0 && (
-                            <div className="mb-4 flex items-center gap-2">
-                                <Filter className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+                            <div className="mb-3 flex items-center gap-2">
+                                <Filter className="w-3 h-3 text-gray-600 dark:text-gray-400" />
                                 <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                                    <SelectTrigger className="w-[200px]">
+                                    <SelectTrigger className="w-[160px] h-8 text-xs">
                                         <SelectValue placeholder="All Time" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -102,40 +102,48 @@ const TeamOfTheWeekComponent: FC<TeamOfTheWeekComponentProps> = ({
 
                         {/* Display Teams */}
                         {filteredTeams.length > 0 ? (
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                 {filteredTeams.map((tw, index) => (
                                     <div
                                         key={index}
-                                        className="bg-white dark:bg-slate-800 rounded-lg p-4 shadow-md border border-slate-200 dark:border-slate-700"
+                                        className="bg-gray-50 dark:bg-gray-900 rounded-lg p-3 border border-gray-200 dark:border-gray-700"
                                     >
-                                        <div className="flex items-start gap-3 mb-3">
-                                            <Users2 className="w-5 h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
-                                            <div className="flex-1">
-                                                <div className="font-bold text-lg text-slate-900 dark:text-slate-100 mb-1">
+                                        <div className="flex items-start gap-2 mb-2">
+                                            <div className="w-4 h-4 bg-black dark:bg-white rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                                                <div className="w-1.5 h-1.5 bg-white dark:bg-black rounded-full"></div>
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="font-bold text-sm text-black dark:text-white mb-1 truncate">
                                                     {tw.team.name}
                                                 </div>
-                                                <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-                                                    <Calendar className="w-4 h-4" />
+                                                <div className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400">
+                                                    <Calendar className="w-3 h-3" />
                                                     <span>{tw.date}</span>
                                                 </div>
                                             </div>
                                         </div>
-                                        <ul className="list-disc list-inside space-y-1">
+                                        <div className="grid grid-cols-2 gap-1">
                                             {tw.team.players.map((player: string, idx: number) => (
-                                                <li
+                                                <div
                                                     key={idx}
-                                                    className="text-slate-700 dark:text-slate-300 text-sm"
+                                                    className="flex items-center gap-1.5 p-1 bg-white dark:bg-black rounded text-xs"
                                                 >
-                                                    {player}
-                                                </li>
+                                                    <div className="w-1 h-1 bg-gray-400 rounded-full flex-shrink-0"></div>
+                                                    <span className="text-black dark:text-white truncate">
+                                                        {player}
+                                                    </span>
+                                                </div>
                                             ))}
-                                        </ul>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
                         ) : (
-                            <div className="text-center py-8 text-slate-600 dark:text-slate-400">
-                                <p className="text-sm">No teams saved yet. Use the &quot;Finish&quot; button in League Standings to save the top team.</p>
+                            <div className="text-center py-6 text-gray-600 dark:text-gray-400">
+                                <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 mb-2">
+                                    <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                                </div>
+                                <p className="text-xs">No teams saved yet. Use the Finish button in League Standings to save the top team.</p>
                             </div>
                         )}
                     </AccordionContent>

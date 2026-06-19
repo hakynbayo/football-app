@@ -197,8 +197,9 @@ const MatchInput: FC<MatchInputProps> = ({ teams, onSubmit }) => {
     };
 
     return (
-        <div className="max-w-2xl mx-auto space-y-6">
+        <div className="space-y-6">
             {successMessage && (
+<<<<<<< HEAD
                 <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-4 flex items-center gap-3">
                     <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
                     <p className="text-green-800 dark:text-green-200 font-medium">
@@ -212,12 +213,31 @@ const MatchInput: FC<MatchInputProps> = ({ teams, onSubmit }) => {
                     <strong>Note:</strong> Select two different teams, enter scores, then
                     assign goalscorers and assists for each goal.
                 </p>
+=======
+                <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 flex items-center gap-3">
+                    <div className="w-8 h-8 bg-black dark:bg-white rounded-full flex items-center justify-center flex-shrink-0">
+                        <CheckCircle2 className="w-5 h-5 text-white dark:text-black" />
+                    </div>
+                    <p className="text-black dark:text-white font-medium">{successMessage}</p>
+                </div>
+            )}
+
+            <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4">
+                <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-black dark:bg-white rounded-full flex items-center justify-center flex-shrink-0">
+                        <Trophy className="w-4 h-4 text-white dark:text-black" />
+                    </div>
+                    <p className="text-sm text-black dark:text-white">
+                        Select teams and enter scores to track match results
+                    </p>
+                </div>
+>>>>>>> d91965a8bff51d5d9fdafa1e262d9d0245df6acb
             </div>
 
             <div className="space-y-6">
                 {/* Team A Section */}
                 <div className="space-y-3">
-                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                    <label className="block text-sm font-semibold text-black dark:text-white">
                         First Team
                     </label>
                     <div className="space-y-3">
@@ -235,7 +255,7 @@ const MatchInput: FC<MatchInputProps> = ({ teams, onSubmit }) => {
                         </Select>
                         <div className="relative">
                             <div className="absolute left-3 top-1/2 -translate-y-1/2">
-                                <Target className="w-5 h-5 text-slate-400" />
+                                <Target className="w-5 h-5 text-gray-400" />
                             </div>
                             <Input
                                 type="number"
@@ -265,16 +285,16 @@ const MatchInput: FC<MatchInputProps> = ({ teams, onSubmit }) => {
 
                 {/* VS Divider */}
                 <div className="flex items-center gap-4">
-                    <div className="flex-1 h-px bg-gradient-to-r from-transparent via-slate-300 dark:via-slate-600 to-slate-300 dark:to-slate-600"></div>
-                    <div className="px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-full font-bold text-lg shadow-lg">
+                    <div className="flex-1 h-px bg-gray-300 dark:bg-gray-600"></div>
+                    <div className="px-4 py-2 bg-black dark:bg-white text-white dark:text-black rounded-full font-bold text-lg shadow-lg">
                         VS
                     </div>
-                    <div className="flex-1 h-px bg-gradient-to-l from-transparent via-slate-300 dark:via-slate-600 to-slate-300 dark:to-slate-600"></div>
+                    <div className="flex-1 h-px bg-gray-300 dark:bg-gray-600"></div>
                 </div>
 
                 {/* Team B Section */}
                 <div className="space-y-3">
-                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                    <label className="block text-sm font-semibold text-black dark:text-white">
                         Second Team
                     </label>
                     <div className="space-y-3">
@@ -292,7 +312,7 @@ const MatchInput: FC<MatchInputProps> = ({ teams, onSubmit }) => {
                         </Select>
                         <div className="relative">
                             <div className="absolute left-3 top-1/2 -translate-y-1/2">
-                                <Target className="w-5 h-5 text-slate-400" />
+                                <Target className="w-5 h-5 text-gray-400" />
                             </div>
                             <Input
                                 type="number"
@@ -324,8 +344,13 @@ const MatchInput: FC<MatchInputProps> = ({ teams, onSubmit }) => {
                 <AlertDialog open={showDialog} onOpenChange={setShowDialog}>
                     <AlertDialogTrigger asChild>
                         <Button
+<<<<<<< HEAD
                             className="w-full h-12 text-base bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 flex items-center gap-2"
                             disabled={!canSubmit}
+=======
+                            className="w-full h-12 text-base bg-black hover:bg-gray-800 text-white dark:bg-white dark:hover:bg-gray-200 dark:text-black flex items-center gap-2"
+                            disabled={!isValid}
+>>>>>>> d91965a8bff51d5d9fdafa1e262d9d0245df6acb
                             onClick={() => setShowDialog(true)}
                         >
                             <Trophy className="w-5 h-5" />
@@ -337,24 +362,34 @@ const MatchInput: FC<MatchInputProps> = ({ teams, onSubmit }) => {
                             <AlertDialogTitle className="text-xl">
                                 Confirm Match Result
                             </AlertDialogTitle>
-                            <div className="mt-4 p-4 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+                            <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
                                 <div className="flex items-center justify-center gap-4 text-lg font-semibold">
                                     <div className="text-center">
+<<<<<<< HEAD
                                         <div className="text-blue-600 dark:text-blue-400">
                                             {teamA}
                                         </div>
                                         <div className="text-2xl text-blue-700 dark:text-blue-300 mt-1">
                                             {scoreA}
                                         </div>
+=======
+                                        <div className="text-black dark:text-white">{teamA}</div>
+                                        <div className="text-2xl text-black dark:text-white mt-1">{scoreA}</div>
+>>>>>>> d91965a8bff51d5d9fdafa1e262d9d0245df6acb
                                     </div>
-                                    <div className="text-slate-400">-</div>
+                                    <div className="text-gray-400">-</div>
                                     <div className="text-center">
+<<<<<<< HEAD
                                         <div className="text-purple-600 dark:text-purple-400">
                                             {teamB}
                                         </div>
                                         <div className="text-2xl text-purple-700 dark:text-purple-300 mt-1">
                                             {scoreB}
                                         </div>
+=======
+                                        <div className="text-black dark:text-white">{teamB}</div>
+                                        <div className="text-2xl text-black dark:text-white mt-1">{scoreB}</div>
+>>>>>>> d91965a8bff51d5d9fdafa1e262d9d0245df6acb
                                     </div>
                                 </div>
                             </div>
@@ -391,7 +426,7 @@ const MatchInput: FC<MatchInputProps> = ({ teams, onSubmit }) => {
                                     handleConfirm();
                                     setShowDialog(false);
                                 }}
-                                className="bg-green-600 hover:bg-green-700"
+                                className="bg-black hover:bg-gray-800 text-white dark:bg-white dark:hover:bg-gray-200 dark:text-black"
                             >
                                 Submit
                             </AlertDialogAction>
