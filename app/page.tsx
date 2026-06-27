@@ -11,7 +11,7 @@ import { useMatchResults } from "@/hooks/useMatchResult";
 import { useTeams } from "@/hooks/useTeams";
 import { useTeamOfTheWeek } from "@/hooks/useTeamOfTheWeek";
 import { useLeaderboard } from "@/hooks/useLeaderboard";
-import { Team, GoalEvent } from "@/types/team";
+import { Team } from "@/types/team";
 import {
   Users,
   Trophy,
@@ -63,6 +63,7 @@ export default function HomePage() {
   };
 
   const handleGenerateTeams = (newTeams: Team[]) => {
+    clearMatchResults();
     setTeams(newTeams);
   };
 
@@ -257,13 +258,7 @@ export default function HomePage() {
                   </div>
                   <MatchInput
                     teams={teams}
-                    onSubmit={(
-                      teamA: string,
-                      teamB: string,
-                      scoreA: number,
-                      scoreB: number,
-                      goals: GoalEvent[],
-                    ) => addMatchResult(teamA, teamB, scoreA, scoreB, goals)}
+                    onSubmit={addMatchResult}
                   />
                 </div>
               ) : (

@@ -2,6 +2,17 @@ import { FC, useState } from "react";
 import { TeamStats, Team } from "@/types/team";
 import { Trophy, Medal, CheckCircle } from "lucide-react";
 import { useSession } from "next-auth/react";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface StatsTableProps {
     stats: TeamStats[];
@@ -11,6 +22,7 @@ interface StatsTableProps {
 
 const StatsTable: FC<StatsTableProps> = ({ stats, teams, onFinish }) => {
     const [isFinishing, setIsFinishing] = useState(false);
+    const [showFinishDialog, setShowFinishDialog] = useState(false);
     const { data: session } = useSession();
     const isAdmin = session?.user?.role === "admin";
 
@@ -39,19 +51,16 @@ const StatsTable: FC<StatsTableProps> = ({ stats, teams, onFinish }) => {
         );
     }
 
+    const leadingTeam = teams.find((team) => team.name === sortedStats[0]?.name);
+
     const handleFinish = () => {
-        if (sortedStats.length > 0 && onFinish) {
+        if (leadingTeam && onFinish) {
             setIsFinishing(true);
-            const winningTeamName = sortedStats[0].name;
-            const winningTeam = teams.find(team => team.name === winningTeamName);
-            if (winningTeam) {
-                onFinish(winningTeam);
-                setTimeout(() => {
-                    setIsFinishing(false);
-                }, 1000);
-            } else {
+            onFinish(leadingTeam);
+            setShowFinishDialog(false);
+            setTimeout(() => {
                 setIsFinishing(false);
-            }
+            }, 1000);
         }
     };
 
@@ -118,17 +127,38 @@ const StatsTable: FC<StatsTableProps> = ({ stats, teams, onFinish }) => {
             {/* Finish Button - Admin only */}
             {sortedStats.length > 0 && onFinish && isAdmin && (
                 <div className="flex justify-center pt-1">
-                    <button
-                        onClick={handleFinish}
-                        disabled={isFinishing}
-                        className={`flex items-center gap-1.5 px-4 py-2 rounded-lg font-medium text-xs transition-all duration-200 ${isFinishing
-                            ? "bg-gray-400 cursor-not-allowed"
-                            : "bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
-                            } text-white`}
-                    >
-                        <CheckCircle className="w-3.5 h-3.5" />
-                        {isFinishing ? "Saving..." : "Finish & Save Team of the Week"}
-                    </button>
+                    <AlertDialog open={showFinishDialog} onOpenChange={setShowFinishDialog}>
+                        <AlertDialogTrigger asChild>
+                            <button
+                                disabled={isFinishing || !leadingTeam}
+                                className={`flex items-center gap-1.5 px-4 py-2 rounded-lg font-medium text-xs transition-all duration-200 ${isFinishing
+                                    ? "bg-gray-400 cursor-not-allowed"
+                                    : "bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                                    } text-white`}
+                            >
+                                <CheckCircle className="w-3.5 h-3.5" />
+                                {isFinishing ? "Saving..." : "Finish & Save Team of the Week"}
+                            </button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Save Team of the Week?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    This will save {leadingTeam?.name} as Team of the Week and clear the current match results.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel disabled={isFinishing}>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                    onClick={handleFinish}
+                                    disabled={isFinishing || !leadingTeam}
+                                    className="bg-black hover:bg-gray-800 text-white dark:bg-white dark:hover:bg-gray-200 dark:text-black"
+                                >
+                                    Confirm
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
                 </div>
             )}
         </div>
