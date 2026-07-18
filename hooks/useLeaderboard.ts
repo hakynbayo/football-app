@@ -71,31 +71,6 @@ export const useLeaderboard = () => {
     },
   });
 
-  const updatePlayerStatMutation = useMutation({
-    mutationFn: async ({
-      player,
-      goals,
-      assists,
-    }: {
-      player: string;
-      goals: number;
-      assists: number;
-    }) => {
-      const response = await fetch("/api/data/goals", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ player, goals, assists }),
-      });
-      if (!response.ok) throw new Error("Failed to update player stats");
-    },
-    onMutate: async () => {
-      await queryClient.cancelQueries({ queryKey: LEADERBOARD_QUERY_KEY });
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: LEADERBOARD_QUERY_KEY });
-    },
-  });
-
   return {
     leaderboard,
     loading,
@@ -104,7 +79,5 @@ export const useLeaderboard = () => {
     deleteGoalsForMatch: (matchId: string) =>
       deleteGoalsForMatchMutation.mutate(matchId),
     clearAllGoals: () => clearAllGoalsMutation.mutate(),
-    updatePlayerStat: (player: string, goals: number, assists: number) =>
-      updatePlayerStatMutation.mutate({ player, goals, assists }),
   };
 };

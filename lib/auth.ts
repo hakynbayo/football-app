@@ -101,6 +101,7 @@ export async function registerUser(
   name: string,
   email: string,
   password: string,
+  role: string = "user",
 ) {
   if (!db) {
     throw new Error(
@@ -125,7 +126,7 @@ export async function registerUser(
     name,
     email,
     passwordHash,
-    role: "user",
+    role,
     createdAt: new Date(),
   });
 

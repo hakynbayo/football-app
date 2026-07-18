@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { goalEvents, playerStats } from "@/lib/db/schema";
+import { goalEvents } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { nanoid } from "nanoid";
@@ -23,31 +23,25 @@ export async function GET() {
       );
     }
 
-    const goalRows = await db.select().from(goalEvents);
-    const statsRows = await db.select().from(playerStats);
+    const rows = await db.select().from(goalEvents);
 
     const playerMap = new Map<string, { goals: number; assists: number }>();
 
-    for (const row of goalRows) {
-      const scorerEntry = playerMap.get(row.scorer) || { goals: 0, assists: 0 };
+    for (const row of rows) {
+      const scorer = row.scorer?.trim() || "none";
+      const scorerEntry = playerMap.get(scorer) || { goals: 0, assists: 0 };
       scorerEntry.goals += 1;
-      playerMap.set(row.scorer, scorerEntry);
+      playerMap.set(scorer, scorerEntry);
 
-      if (row.assist) {
-        const assistEntry = playerMap.get(row.assist) || {
+      const assist = row.assist?.trim() || "none";
+      if (assist) {
+        const assistEntry = playerMap.get(assist) || {
           goals: 0,
           assists: 0,
         };
         assistEntry.assists += 1;
-        playerMap.set(row.assist, assistEntry);
+        playerMap.set(assist, assistEntry);
       }
-    }
-
-    for (const stat of statsRows) {
-      const existing = playerMap.get(stat.player) || { goals: 0, assists: 0 };
-      existing.goals += stat.goals;
-      existing.assists += stat.assists;
-      playerMap.set(stat.player, existing);
     }
 
     const leaderboard: PlayerLeaderboard[] = Array.from(playerMap.entries())
@@ -99,14 +93,19 @@ export async function POST(request: NextRequest) {
 
     if (goals.length > 0) {
       const rows = goals.map(
-        (goal: { team: string; scorer: string; assist?: string }) => ({
-          id: nanoid(),
-          matchId,
-          team: goal.team,
-          scorer: goal.scorer,
-          assist: goal.assist || null,
-          createdAt: now,
-        }),
+        (goal: { team: string; scorer?: string; assist?: string | null }) => {
+          const scorer = goal.scorer?.trim() ? goal.scorer : "none";
+          const assist = goal.assist?.trim() ? goal.assist : "none";
+
+          return {
+            id: nanoid(),
+            matchId,
+            team: goal.team,
+            scorer,
+            assist,
+            createdAt: now,
+          };
+        },
       );
 
       await db.insert(goalEvents).values(rows);
@@ -117,69 +116,6 @@ export async function POST(request: NextRequest) {
     console.error("Error saving goal events:", error);
     return NextResponse.json(
       { error: "Failed to save goal events" },
-      { status: 500 },
-    );
-  }
-}
-
-// PATCH - Persist manual player stat changes
-export async function PATCH(request: NextRequest) {
-  try {
-    const session = await auth();
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    if (!db) {
-      return NextResponse.json(
-        { error: "Database unavailable" },
-        { status: 500 },
-      );
-    }
-
-    const { player, goals, assists } = await request.json();
-
-    if (!player || goals === undefined || assists === undefined) {
-      return NextResponse.json(
-        { error: "player, goals, and assists are required" },
-        { status: 400 },
-      );
-    }
-
-    const now = new Date();
-
-    const existing = await db
-      .select()
-      .from(playerStats)
-      .where(eq(playerStats.player, player))
-      .limit(1);
-
-    if (existing.length > 0) {
-      await db
-        .update(playerStats)
-        .set({
-          goals,
-          assists,
-          updatedAt: now,
-        })
-        .where(eq(playerStats.player, player));
-    } else {
-      await db.insert(playerStats).values({
-        id: nanoid(),
-        player,
-        goals,
-        assists,
-        createdAt: now,
-        updatedAt: now,
-        createdBy: session.user.id,
-      });
-    }
-
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("Error updating player stats:", error);
-    return NextResponse.json(
-      { error: "Failed to update player stats" },
       { status: 500 },
     );
   }

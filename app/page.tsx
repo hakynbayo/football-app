@@ -35,7 +35,7 @@ export default function HomePage() {
   const { stats, addMatchResult, clearMatchResults } = useMatchResults();
   const { teamOfWeek, saveTeamOfTheWeek, getTeamOfWeekByMonth } =
     useTeamOfTheWeek();
-  const { leaderboard, updatePlayerStat } = useLeaderboard();
+  const { leaderboard } = useLeaderboard();
   const [activeTab, setActiveTab] = useState<TabType>("teams");
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -321,7 +321,6 @@ export default function HomePage() {
                 <GoalLeaderboard
                   leaderboard={leaderboard}
                   teams={teams}
-                  updatePlayerStat={updatePlayerStat}
                 />
               </div>
             </div>

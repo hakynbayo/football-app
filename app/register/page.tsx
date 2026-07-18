@@ -2,18 +2,28 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { UserPlus, AlertCircle } from "lucide-react";
+import { UserPlus, AlertCircle, ShieldCheck, UserPlus2 } from "lucide-react";
 
 export default function RegisterPage() {
     const router = useRouter();
+    const { data: session } = useSession();
+    const isAdmin = session?.user?.role === "admin";
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
+    const [role, setRole] = useState("user");
+    const [createLinkedUser, setCreateLinkedUser] = useState(false);
+    const [linkedName, setLinkedName] = useState("");
+    const [linkedEmail, setLinkedEmail] = useState("");
+    const [linkedPassword, setLinkedPassword] = useState("");
+    const [linkedConfirmPassword, setLinkedConfirmPassword] = useState("");
     const [error, setError] = useState("");
+    const [successMessage, setSuccessMessage] = useState("");
     const [loading, setLoading] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -33,10 +43,37 @@ export default function RegisterPage() {
         setLoading(true);
 
         try {
+            const payload: Record<string, unknown> = {
+                name,
+                email,
+                password,
+                role,
+            };
+
+            if (isAdmin && role === "admin" && createLinkedUser) {
+                if (linkedPassword !== linkedConfirmPassword) {
+                    setError("Linked user passwords do not match");
+                    setLoading(false);
+                    return;
+                }
+
+                if (linkedPassword.length < 6) {
+                    setError("Linked user password must be at least 6 characters");
+                    setLoading(false);
+                    return;
+                }
+
+                payload.linkedUser = {
+                    name: linkedName,
+                    email: linkedEmail,
+                    password: linkedPassword,
+                };
+            }
+
             const response = await fetch("/api/auth/register", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ name, email, password }),
+                body: JSON.stringify(payload),
             });
 
             const data = await response.json();
@@ -45,7 +82,25 @@ export default function RegisterPage() {
                 throw new Error(data.error || "Registration failed");
             }
 
-            router.push("/login");
+            if (!isAdmin) {
+                router.push("/login");
+            } else {
+                setSuccessMessage(
+                    role === "admin"
+                        ? "Admin account created successfully."
+                        : "Account created successfully.",
+                );
+                setName("");
+                setEmail("");
+                setPassword("");
+                setConfirmPassword("");
+                setRole("user");
+                setCreateLinkedUser(false);
+                setLinkedName("");
+                setLinkedEmail("");
+                setLinkedPassword("");
+                setLinkedConfirmPassword("");
+            }
         } catch (err: unknown) {
             const message = err instanceof Error ? err.message : "Registration failed";
             setError(message);

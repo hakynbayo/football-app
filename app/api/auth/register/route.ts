@@ -6,7 +6,7 @@ export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
   try {
-    const { name, email, password } = await request.json();
+    const { name, email, password, role } = await request.json();
 
     if (!name || !email || !password) {
       return NextResponse.json(
@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const userId = await registerUser(name, email, password);
+    const userId = await registerUser(name, email, password, role || "user");
 
     return NextResponse.json({ success: true, userId });
   } catch (error: unknown) {

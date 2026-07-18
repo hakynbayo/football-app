@@ -1,6 +1,6 @@
 "use client";
 
-import { FC, useMemo, useState } from "react";
+import { FC, useEffect, useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,7 +14,7 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trophy, Target, CheckCircle2, Trash2, Plus } from "lucide-react";
+import { Trophy, Target, CheckCircle2 } from "lucide-react";
 import { Team, GoalEvent } from "@/types/team";
 
 interface MatchInputProps {
@@ -50,6 +50,8 @@ const MatchInput: FC<MatchInputProps> = ({ teams, onSubmit }) => {
         return Array.from(playerSet).sort((a, b) => a.localeCompare(b));
     }, [teams]);
 
+   
+
     const isValid =
         teamA &&
         teamB &&
@@ -68,6 +70,9 @@ const MatchInput: FC<MatchInputProps> = ({ teams, onSubmit }) => {
         { teamA: 0, teamB: 0 },
     );
 
+    const teamAGoals = goals.filter((goal) => goal.team === teamA);
+    const teamBGoals = goals.filter((goal) => goal.team === teamB);
+
     const goalsMatchScore =
         goals.length === numScoreA + numScoreB &&
         (!teamA || goalsByTeam.teamA === numScoreA) &&
@@ -75,22 +80,43 @@ const MatchInput: FC<MatchInputProps> = ({ teams, onSubmit }) => {
 
     const canSubmit = isValid && goalsMatchScore;
 
-    const addGoalRow = () => {
-        const defaultTeam = teamA || teamB || teams[0]?.name || "";
-        const defaultScorer = allPlayers[0] || "";
-        setGoals((current) => [
-            ...current,
-            {
-                team: defaultTeam,
-                scorer: defaultScorer,
-                assist: null,
-            },
-        ]);
-    };
+    useEffect(() => {
+        if (!teamA || !teamB || !isValid) {
+            setGoals([]);
+            return;
+        }
 
-    const removeGoalRow = (index: number) => {
-        setGoals((current) => current.filter((_, idx) => idx !== index));
-    };
+        setGoals((currentGoals) => {
+            const totalGoals = numScoreA + numScoreB;
+            const nextGoals: GoalEvent[] = [];
+
+            for (let index = 0; index < totalGoals; index += 1) {
+                const assignedTeam = index < numScoreA ? teamA : teamB;
+                const existing = currentGoals[index];
+
+                nextGoals.push({
+                    team: assignedTeam,
+                    scorer:
+                        existing && allPlayers.includes(existing.scorer)
+                            ? existing.scorer
+                            : allPlayers[0] || "",
+                    assist: existing?.assist ?? null,
+                });
+            }
+
+            const sameLength = nextGoals.length === currentGoals.length;
+            const noChanges = sameLength && nextGoals.every((next, idx) => {
+                const current = currentGoals[idx];
+                return (
+                    current?.team === next.team &&
+                    current?.scorer === next.scorer &&
+                    current?.assist === next.assist
+                );
+            });
+
+            return noChanges ? currentGoals : nextGoals;
+        });
+    }, [teamA, teamB, numScoreA, numScoreB, allPlayers, isValid]);
 
     const updateGoalRow = (
         index: number,
@@ -139,7 +165,7 @@ const MatchInput: FC<MatchInputProps> = ({ teams, onSubmit }) => {
 
             <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
                 <p className="text-sm text-amber-800 dark:text-amber-200">
-                    <strong>Note:</strong> Select two different teams, enter the score, and add one goal row per goal.
+                    <strong>Note:</strong> Select teams and enter the final score. Goal rows are created automatically, and all players are visible for easy selection.
                 </p>
             </div>
 
@@ -219,112 +245,167 @@ const MatchInput: FC<MatchInputProps> = ({ teams, onSubmit }) => {
                                 Goals ({goals.length})
                             </h2>
                             <p className="text-xs text-slate-500 dark:text-slate-400">
-                                Add a row for each goal and choose the scorer plus optional assist.
+                                Goal rows are generated automatically from the entered score. Select scorer and assist for each goal.
                             </p>
                         </div>
-                        <Button
-                            type="button"
-                            onClick={addGoalRow}
-                            className="inline-flex items-center gap-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200"
-                        >
-                            <Plus className="w-4 h-4" />
-                            Add Goal
-                        </Button>
                     </div>
 
-                    {goals.length === 0 ? (
-                        <div className="rounded-lg border border-dashed border-slate-300 dark:border-slate-700 p-6 text-center text-sm text-slate-500 dark:text-slate-400">
-                            No goal rows yet. Click Add Goal to choose scorer and assist for each goal.
-                        </div>
-                    ) : (
-                        <div className="space-y-4">
-                            {goals.map((goal, index) => (
-                                <div
-                                    key={`${goal.scorer}-${index}`}
-                                    className="grid gap-3 lg:grid-cols-[1fr_1fr_1fr_auto] items-end"
-                                >
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                                            Team
-                                        </label>
-                                        <Select
-                                            value={goal.team}
-                                            onValueChange={(value) => updateGoalRow(index, "team", value)}
-                                        >
-                                            <SelectTrigger className="h-12 text-base">
-                                                <SelectValue placeholder="Select team" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {teamA && (
-                                                    <SelectItem key={teamA} value={teamA}>
-                                                        {teamA}
-                                                    </SelectItem>
-                                                )}
-                                                {teamB && (
-                                                    <SelectItem key={teamB} value={teamB}>
-                                                        {teamB}
-                                                    </SelectItem>
-                                                )}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                                            Scorer
-                                        </label>
-                                        <Select
-                                            value={goal.scorer}
-                                            onValueChange={(value) => updateGoalRow(index, "scorer", value)}
-                                        >
-                                            <SelectTrigger className="h-12 text-base">
-                                                <SelectValue placeholder="Select scorer" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {allPlayers.map((player) => (
-                                                    <SelectItem key={player} value={player}>
-                                                        {player}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                                            Assist
-                                        </label>
-                                        <Select
-                                            value={goal.assist ?? "none"}
-                                            onValueChange={(value) =>
-                                                updateGoalRow(index, "assist", value === "none" ? null : value)
-                                            }
-                                        >
-                                            <SelectTrigger className="h-12 text-base">
-                                                <SelectValue placeholder="Select assist" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem key="none" value="none">
-                                                    None
-                                                </SelectItem>
-                                                {allPlayers.map((player) => (
-                                                    <SelectItem key={player} value={player}>
-                                                        {player}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <button
-                                        type="button"
-                                        onClick={() => removeGoalRow(index)}
-                                        className="inline-flex h-12 w-12 items-center justify-center rounded-lg border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 dark:border-red-700 dark:bg-red-950 dark:text-red-300"
-                                        aria-label={`Remove goal ${index + 1}`}
-                                    >
-                                        <Trash2 className="w-4 h-4" />
-                                    </button>
+                    <div className="grid gap-4 lg:grid-cols-2">
+                        <div className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 p-4">
+                            <div className="flex items-center justify-between gap-3 mb-4">
+                                <div>
+                                    <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                                        {teamA || "Team A"}
+                                    </h3>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                                        {numScoreA} {numScoreA === 1 ? "goal" : "goals"}
+                                    </p>
                                 </div>
-                            ))}
+                            </div>
+                            {teamAGoals.length === 0 ? (
+                                <div className="rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 p-4 text-sm text-slate-500 dark:text-slate-400">
+                                    No goals for this team.
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {teamAGoals.map((goal, index) => (
+                                        <div key={`${goal.team}-goal-${index}`} className="space-y-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
+                                            <div className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                                                Goal {index + 1}
+                                            </div>
+                                            <div className="grid gap-4 sm:grid-cols-2">
+                                                <div className="space-y-2">
+                                                    <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                                                        Scorer
+                                                    </label>
+                                                    <Select
+                                                        value={goal.scorer}
+                                                        onValueChange={(value) => updateGoalRow(goals.indexOf(goal), "scorer", value)}
+                                                    >
+                                                        <SelectTrigger className="h-12 text-base">
+                                                            <SelectValue placeholder="Select scorer" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem key="none" value="none">
+                                                                None
+                                                            </SelectItem>
+                                                            {allPlayers.map((player) => (
+                                                                <SelectItem key={player} value={player}>
+                                                                    {player}
+                                                                </SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                                                        Assist
+                                                    </label>
+                                                    <Select
+                                                        value={goal.assist ?? "none"}
+                                                        onValueChange={(value) =>
+                                                            updateGoalRow(goals.indexOf(goal), "assist", value === "none" ? null : value)
+                                                        }
+                                                    >
+                                                        <SelectTrigger className="h-12 text-base">
+                                                            <SelectValue placeholder="Select assist" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem key="none" value="none">
+                                                                None
+                                                            </SelectItem>
+                                                            {allPlayers.map((player) => (
+                                                                <SelectItem key={player} value={player}>
+                                                                    {player}
+                                                                </SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
-                    )}
+                        <div className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 p-4">
+                            <div className="flex items-center justify-between gap-3 mb-4">
+                                <div>
+                                    <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                                        {teamB || "Team B"}
+                                    </h3>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                                        {numScoreB} {numScoreB === 1 ? "goal" : "goals"}
+                                    </p>
+                                </div>
+                            </div>
+                            {teamBGoals.length === 0 ? (
+                                <div className="rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 p-4 text-sm text-slate-500 dark:text-slate-400">
+                                    No goals for this team.
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {teamBGoals.map((goal, index) => (
+                                        <div key={`${goal.team}-goal-${index}`} className="space-y-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
+                                            <div className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                                                Goal {index + 1}
+                                            </div>
+                                            <div className="grid gap-4 sm:grid-cols-2">
+                                                <div className="space-y-2">
+                                                    <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                                                        Scorer
+                                                    </label>
+                                                    <Select
+                                                        value={goal.scorer}
+                                                        onValueChange={(value) => updateGoalRow(goals.indexOf(goal), "scorer", value)}
+                                                    >
+                                                        <SelectTrigger className="h-12 text-base">
+                                                            <SelectValue placeholder="Select scorer" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem key="none" value="none">
+                                                                None
+                                                            </SelectItem>
+                                                            {allPlayers.map((player) => (
+                                                                <SelectItem key={player} value={player}>
+                                                                    {player}
+                                                                </SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                                                        Assist
+                                                    </label>
+                                                    <Select
+                                                        value={goal.assist ?? "none"}
+                                                        onValueChange={(value) =>
+                                                            updateGoalRow(goals.indexOf(goal), "assist", value === "none" ? null : value)
+                                                        }
+                                                    >
+                                                        <SelectTrigger className="h-12 text-base">
+                                                            <SelectValue placeholder="Select assist" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem key="none" value="none">
+                                                                None
+                                                            </SelectItem>
+                                                            {allPlayers.map((player) => (
+                                                                <SelectItem key={player} value={player}>
+                                                                    {player}
+                                                                </SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
 
                     <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 p-4 text-sm text-slate-600 dark:text-slate-300">
                         <div className="flex items-center justify-between gap-4">
