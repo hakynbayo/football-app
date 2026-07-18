@@ -1,18 +1,18 @@
 "use client";
 
-import { FC, useMemo } from "react";
+import { FC, useMemo, useEffect, useState } from "react";
 import { PlayerLeaderboard, Team } from "@/types/team";
-import { Trophy } from "lucide-react";
+import { Trophy, Plus, Minus } from "lucide-react";
 
 interface GoalLeaderboardProps {
     leaderboard: PlayerLeaderboard[];
     teams: Team[];
+    updatePlayerStat: (player: string, goals: number, assists: number) => void;
 }
 
-const GoalLeaderboard: FC<GoalLeaderboardProps> = ({ leaderboard, teams }) => {
+const GoalLeaderboard: FC<GoalLeaderboardProps> = ({ leaderboard, teams, updatePlayerStat }) => {
     // Build the full list: merge leaderboard data with all players from teams
     const fullList = useMemo(() => {
-        // Get all unique player names from teams
         const allPlayers = new Set<string>();
         for (const team of teams) {
             for (const player of team.players) {
@@ -20,20 +20,17 @@ const GoalLeaderboard: FC<GoalLeaderboardProps> = ({ leaderboard, teams }) => {
             }
         }
 
-        // Build a map from existing leaderboard
         const leaderboardMap = new Map<string, PlayerLeaderboard>();
         for (const entry of leaderboard) {
             leaderboardMap.set(entry.player, entry);
         }
 
-        // Add any players not already in the leaderboard with 0/0
         for (const player of allPlayers) {
             if (!leaderboardMap.has(player)) {
                 leaderboardMap.set(player, { player, goals: 0, assists: 0 });
             }
         }
 
-        // Sort: by goals desc, then assists desc, then alphabetically
         return Array.from(leaderboardMap.values()).sort((a, b) => {
             if (b.goals !== a.goals) return b.goals - a.goals;
             if (b.assists !== a.assists) return b.assists - a.assists;
@@ -41,7 +38,36 @@ const GoalLeaderboard: FC<GoalLeaderboardProps> = ({ leaderboard, teams }) => {
         });
     }, [leaderboard, teams]);
 
-    if (fullList.length === 0) {
+    const [stats, setStats] = useState<PlayerLeaderboard[]>(fullList);
+
+    useEffect(() => {
+        setStats(fullList);
+    }, [fullList]);
+
+    const updateStat = (player: string, field: "goals" | "assists", delta: number) => {
+        setStats((current) => {
+            const next = current.map((entry) => {
+                if (entry.player !== player) return entry;
+                const value = Math.max(0, entry[field] + delta);
+                return { ...entry, [field]: value };
+            });
+            const updated = next.find((entry) => entry.player === player);
+            if (updated) {
+                updatePlayerStat(updated.player, updated.goals, updated.assists);
+            }
+            return next;
+        });
+    };
+
+    const sortedStats = useMemo(() => {
+        return [...stats].sort((a, b) => {
+            if (b.goals !== a.goals) return b.goals - a.goals;
+            if (b.assists !== a.assists) return b.assists - a.assists;
+            return a.player.localeCompare(b.player);
+        });
+    }, [stats]);
+
+    if (sortedStats.length === 0) {
         return (
             <div className="text-center py-8">
                 <p className="text-xs text-muted-foreground">
@@ -58,13 +84,13 @@ const GoalLeaderboard: FC<GoalLeaderboardProps> = ({ leaderboard, teams }) => {
                     <tr className="border-b border-slate-200 dark:border-slate-700">
                         <th className="py-2 px-1 text-left font-semibold text-slate-500 dark:text-slate-400 w-7">#</th>
                         <th className="py-2 px-1 text-left font-semibold text-slate-500 dark:text-slate-400">Player</th>
-                        <th className="py-2 px-1 text-center font-semibold text-slate-500 dark:text-slate-400 w-8">⚽</th>
-                        <th className="py-2 px-1 text-center font-semibold text-slate-500 dark:text-slate-400 w-8">🅰️</th>
+                        <th className="py-2 px-1 text-center font-semibold text-slate-500 dark:text-slate-400 w-24">Goals</th>
+                        <th className="py-2 px-1 text-center font-semibold text-slate-500 dark:text-slate-400 w-24">Assists</th>
                         <th className="py-2 px-1 text-center font-semibold text-slate-500 dark:text-slate-400 w-9">G+A</th>
                     </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
-                    {fullList.map((entry, index) => (
+                    {sortedStats.map((entry, index) => (
                         <tr
                             key={entry.player}
                             className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
@@ -84,17 +110,53 @@ const GoalLeaderboard: FC<GoalLeaderboardProps> = ({ leaderboard, teams }) => {
                                     {entry.player}
                                 </span>
                             </td>
-                            <td className="py-1.5 px-1 text-center">
-                                <span className={`inline-flex items-center justify-center w-5 h-5 rounded font-bold text-[10px] ${entry.goals > 0 ? "bg-green-500 text-white" : "bg-slate-200 dark:bg-slate-600 text-slate-500 dark:text-slate-400"
-                                    }`}>
-                                    {entry.goals}
-                                </span>
+                            <td className="py-1.5 px-1">
+                                <div className="inline-flex items-center justify-center gap-1">
+                                    <button
+                                        type="button"
+                                        onClick={() => updateStat(entry.player, "goals", -1)}
+                                        disabled={entry.goals <= 0}
+                                        className="w-7 h-7 rounded-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed"
+                                        aria-label={`Decrease goals for ${entry.player}`}
+                                    >
+                                        <Minus className="w-3.5 h-3.5" />
+                                    </button>
+                                    <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 font-semibold text-slate-700 dark:text-slate-200">
+                                        {entry.goals}
+                                    </span>
+                                    <button
+                                        type="button"
+                                        onClick={() => updateStat(entry.player, "goals", 1)}
+                                        className="w-7 h-7 rounded-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-200"
+                                        aria-label={`Increase goals for ${entry.player}`}
+                                    >
+                                        <Plus className="w-3.5 h-3.5" />
+                                    </button>
+                                </div>
                             </td>
-                            <td className="py-1.5 px-1 text-center">
-                                <span className={`inline-flex items-center justify-center w-5 h-5 rounded font-bold text-[10px] ${entry.assists > 0 ? "bg-blue-500 text-white" : "bg-slate-200 dark:bg-slate-600 text-slate-500 dark:text-slate-400"
-                                    }`}>
-                                    {entry.assists}
-                                </span>
+                            <td className="py-1.5 px-1">
+                                <div className="inline-flex items-center justify-center gap-1">
+                                    <button
+                                        type="button"
+                                        onClick={() => updateStat(entry.player, "assists", -1)}
+                                        disabled={entry.assists <= 0}
+                                        className="w-7 h-7 rounded-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed"
+                                        aria-label={`Decrease assists for ${entry.player}`}
+                                    >
+                                        <Minus className="w-3.5 h-3.5" />
+                                    </button>
+                                    <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 font-semibold text-slate-700 dark:text-slate-200">
+                                        {entry.assists}
+                                    </span>
+                                    <button
+                                        type="button"
+                                        onClick={() => updateStat(entry.player, "assists", 1)}
+                                        className="w-7 h-7 rounded-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-200"
+                                        aria-label={`Increase assists for ${entry.player}`}
+                                    >
+                                        <Plus className="w-3.5 h-3.5" />
+                                    </button>
+                                </div>
                             </td>
                             <td className="py-1.5 px-1 text-center font-bold text-slate-700 dark:text-slate-300">
                                 {entry.goals + entry.assists}

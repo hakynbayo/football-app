@@ -40,6 +40,16 @@ export const goalEvents = sqliteTable("goal_events", {
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
+export const playerStats = sqliteTable("player_stats", {
+  id: text("id").primaryKey(),
+  player: text("player").notNull().unique(),
+  goals: integer("goals").notNull().default(0),
+  assists: integer("assists").notNull().default(0),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+  createdBy: text("created_by"),
+});
+
 // Team of the week: one row per month entry
 export const teamOfTheWeek = sqliteTable("team_of_the_week", {
   id: text("id").primaryKey(),
