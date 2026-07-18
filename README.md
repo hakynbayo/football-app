@@ -1,117 +1,146 @@
 # Football App
 
-A football team management application with match tracking, team statistics, and user authentication. Built with Next.js 15, TypeScript, SQLite, and NextAuth.
+A modern, full-stack football application built with Next.js, TypeScript, and contemporary web technologies.
 
-## Features
+## 🎯 Overview
 
-- **User Authentication**: Sign up, login, and secure session management
-- **Team Management**: Create and manage teams with multiple players
-- **Match Tracking**: Record match results between teams
-- **Statistics**: View team standings and match history
-- **Responsive Design**: Mobile-first UI with dark mode support
+Football App is a TypeScript-based web application that combines a powerful Next.js frontend with a robust backend infrastructure. The app features real-time data management, user authentication, and a polished UI built with Radix UI components and Tailwind CSS.
 
-## Tech Stack
+## 🚀 Tech Stack
 
-| Category         | Technologies Used       |
-| ---------------- | ----------------------- |
-| Core             | Next.js 15, TypeScript  |
-| Database         | SQLite with Drizzle ORM |
-| Authentication   | NextAuth.js v5          |
-| Styling          | TailwindCSS, Shadcn UI  |
-| State Management | React Hooks             |
-| Build Tool       | Turbopack               |
+### Frontend
+- **Framework**: [Next.js 16](https://nextjs.org/) with Turbopack
+- **Language**: [TypeScript 5](https://www.typescriptlang.org/)
+- **UI Components**: [Radix UI](https://www.radix-ui.com/) (Accordion, Alert Dialog, Dialog, Dropdown Menu, Label, Select)
+- **Styling**: [Tailwind CSS 4](https://tailwindcss.com/) with [Tailwind Merge](https://github.com/dcastil/tailwind-merge)
+- **State Management**: [TanStack React Query v5](https://tanstack.com/query/latest)
+- **Forms**: [React Hook Form](https://react-hook-form.com/) with [Zod](https://zod.dev/) validation
+- **Animation**: [Framer Motion](https://www.framer.com/motion/)
+- **Icons**: [Lucide React](https://lucide.dev/)
 
-## Prerequisites
+### Backend
+- **Database**: [LibSQL](https://github.com/libsql/libsql) with [Drizzle ORM](https://orm.drizzle.team/)
+- **Authentication**: [NextAuth.js v5 Beta](https://authjs.dev/)
+- **Password Hashing**: [bcryptjs](https://github.com/dcodeIO/bcrypt.js)
+- **Linting**: ESLint 9 with Next.js configuration
 
-- Node.js 18+ installed
-- Yarn package manager
+### Utilities
+- **ID Generation**: [nanoid](https://github.com/ai/nanoid)
+- **Environment Variables**: [dotenv](https://github.com/motdotla/dotenv)
+- **Scripting**: [tsx](https://github.com/esbuild-kit/tsx)
 
-## Setup Instructions
-
-### 1. Clone the repository
+## 📋 Scripts
 
 ```bash
-git clone <repository-url>
+# Development
+npm run dev           # Start development server with Turbopack
+
+# Production
+npm run build         # Build for production
+npm run start         # Start production server
+
+# Linting
+npm run lint          # Run ESLint
+
+# Database
+npm run db:generate   # Generate Drizzle migrations
+npm run db:migrate    # Run database migrations
+npm run db:seed       # Seed users to the database
+npm run db:reset      # Reset database and re-seed
+npm run db:update-passwords  # Update user passwords
+```
+
+## 🛠️ Getting Started
+
+### Prerequisites
+- Node.js 20+ 
+- npm or yarn
+
+### Installation
+
+1. Clone the repository
+```bash
+git clone https://github.com/hakynbayo/football-app.git
 cd football-app
 ```
 
-### 2. Install dependencies
-
+2. Install dependencies
 ```bash
-yarn install
+npm install
 ```
 
-### 3. Generate and run database migrations
-
+3. Set up environment variables
 ```bash
-# Generate migrations
-yarn db:generate
-
-# Run migrations (this will create the database)
-yarn db:migrate
+cp .env.example .env.local
 ```
 
-### 4. Run the development server
-
+4. Initialize the database
 ```bash
-yarn dev
+npm run db:generate
+npm run db:migrate
+npm run db:seed
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+5. Start the development server
+```bash
+npm run dev
+```
 
-### 5. Create an account
+The app will be available at `http://localhost:3000`
 
-1. Navigate to the register page at `/register`
-2. Create a new account with your name, email, and password
-3. Sign in to start using the app
-
-## Database Schema
-
-The application uses the following main tables:
-
-- **users**: User accounts with authentication
-- **teams**: Teams created by users
-- **players**: Players in each team
-- **matches**: Match results between teams
-
-## Available Scripts
-
-- `yarn dev` - Start development server with Turbopack
-- `yarn build` - Build for production
-- `yarn start` - Start production server
-- `yarn lint` - Run ESLint
-- `yarn db:generate` - Generate database migrations
-- `yarn db:migrate` - Run database migrations
-
-## Project Structure
+## 📚 Project Structure
 
 ```
 football-app/
-├── app/                    # Next.js app directory
-│   ├── api/               # API routes
-│   ├── login/             # Login page
-│   ├── register/          # Registration page
-│   └── page.tsx           # Main app page
-├── components/            # React components
-├── lib/                   # Utilities and configurations
-│   ├── db/               # Database setup and schema
-│   └── auth.ts           # NextAuth configuration
-├── hooks/                # Custom React hooks
-├── types/                # TypeScript type definitions
-└── drizzle.config.ts     # Drizzle ORM configuration
+├── app/              # Next.js app directory
+├── components/       # React components
+├── lib/              # Utility functions
+├── db/               # Database configuration and schema
+├── scripts/          # Database setup and utility scripts
+├── public/           # Static assets
+├── styles/           # Global styles
+├── types/            # TypeScript type definitions
+└── package.json      # Project dependencies and scripts
 ```
 
-## Authentication
+## 🔐 Authentication
 
-The app uses NextAuth.js v5 with:
+The app uses NextAuth.js v5 for authentication. User credentials are hashed using bcryptjs for security.
 
-- Credentials provider for email/password authentication
-- JWT-based sessions
-- Password hashing with bcrypt
-- SQLite database for user storage
+To update user passwords:
+```bash
+npm run db:update-passwords
+```
 
-## Database
+## 🗄️ Database
 
-- **SQLite** with better-sqlite3 driver
-- **Drizzle ORM** for type-safe database queries
-- Automatic migrations on server start
+The application uses LibSQL for the database backend with Drizzle ORM as the query builder. Database operations include:
+
+- **Generate**: `npm run db:generate` - Creates migration files based on your schema
+- **Migrate**: `npm run db:migrate` - Applies migrations to your database
+- **Seed**: `npm run db:seed` - Populates initial user data
+- **Reset**: `npm run db:reset` - Clears and re-seeds the database
+
+## 🎨 UI & Styling
+
+The UI is built using Radix UI primitives for accessibility and Tailwind CSS for styling. Framer Motion provides smooth animations throughout the application.
+
+## 🧪 Quality Assurance
+
+The project uses ESLint with Next.js recommended rules to maintain code quality and consistency.
+
+## 📝 License
+
+This project is public and available on [GitHub](https://github.com/hakynbayo/football-app).
+
+## 👤 Author
+
+- **GitHub**: [@hakynbayo](https://github.com/hakynbayo)
+
+## 🤝 Contributing
+
+Contributions, issues, and feature requests are welcome! Feel free to fork the repository and submit pull requests.
+
+---
+
+**Last Updated**: July 18, 2026
