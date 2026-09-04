@@ -3,6 +3,7 @@ import { ResetTeamsButton } from "@/components/ResetModal";
 import MatchHistory from "@/components/shared/MatchHistory";
 import MatchInput from "@/components/shared/MatchInput";
 import PlayerInputForm from "@/components/shared/PlayerInputForm";
+import ManualTeamForm from "@/components/shared/ManualTeamForm";
 import StatsTable from "@/components/shared/StatsTable";
 import TeamCard from "@/components/shared/TeamCard";
 import TeamOfTheWeekComponent from "@/components/shared/TeamOfTheWeek";
@@ -17,7 +18,6 @@ import {
   Trophy,
   History,
   PlusCircle,
-  Plus,
   LogIn,
   LogOut,
   User,
@@ -30,7 +30,7 @@ import { useRouter } from "next/navigation";
 type TabType = "teams" | "matches" | "history" | "standings" | "leaderboard";
 
 export default function HomePage() {
-  const { teams, setTeams, updateTeam, deleteTeam } = useTeams();
+  const { teams, setTeams, addTeam, updateTeam, deleteTeam } = useTeams();
   const [playerText, setPlayerText] = useState("");
   const { stats, addMatchResult, clearMatchResults } = useMatchResults();
   const { teamOfWeek, saveTeamOfTheWeek, getTeamOfWeekByMonth } =
@@ -65,25 +65,6 @@ export default function HomePage() {
   const handleGenerateTeams = (newTeams: Team[]) => {
     clearMatchResults();
     setTeams(newTeams);
-  };
-
-  const handleAddTeam = () => {
-    if (teams.length === 0) {
-      alert("Please generate teams first!");
-      return;
-    }
-
-    const playersPerTeam = teams[0].players.length;
-
-    const newTeam: Team = {
-      name: "Team New Player",
-      players: Array.from(
-        { length: playersPerTeam },
-        (_, i) => `New Player ${i + 1}`,
-      ),
-    };
-
-    setTeams([...teams, newTeam]);
   };
 
   const handleUpdateTeam = (_index: number, updatedTeam: Team) => {
@@ -195,6 +176,7 @@ export default function HomePage() {
                     setPlayerText={setPlayerText}
                     onGenerateTeams={handleGenerateTeams}
                   />
+                  <ManualTeamForm onAddTeam={addTeam} />
                 </div>
               )}
 
@@ -229,15 +211,6 @@ export default function HomePage() {
                       ))}
                     </div>
                   </div>
-                  {isAdmin && (
-                    <button
-                      onClick={handleAddTeam}
-                      className="w-full flex items-center justify-center gap-2 p-4 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-base text-center font-medium"
-                    >
-                      <Plus className="w-4 h-4" />
-                      Add New Team
-                    </button>
-                  )}
                 </>
               )}
             </div>

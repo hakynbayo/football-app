@@ -47,6 +47,20 @@ export const useTeams = () => {
     },
   });
 
+  const addTeamMutation = useMutation({
+    mutationFn: async (team: Team) => {
+      const response = await fetch("/api/data/teams", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ team }),
+      });
+      if (!response.ok) throw new Error("Failed to add team");
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: TEAMS_QUERY_KEY });
+    },
+  });
+
   const updateTeamMutation = useMutation({
     mutationFn: async (team: Team) => {
       const response = await fetch("/api/data/teams", {
@@ -110,6 +124,7 @@ export const useTeams = () => {
   return {
     teams,
     setTeams: (newTeams: Team[]) => setTeamsMutation.mutate(newTeams),
+    addTeam: (team: Team) => addTeamMutation.mutate(team),
     updateTeam: (team: Team) => updateTeamMutation.mutate(team),
     deleteTeam: (id: string) => deleteTeamMutation.mutate(id),
     clearTeams: () => clearTeamsMutation.mutate(),

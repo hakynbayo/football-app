@@ -40,7 +40,7 @@ export async function GET() {
   }
 }
 
-// POST - Replace all teams (bulk operation for team generation)
+// POST - Add one team or replace all teams (bulk operation for team generation)
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
@@ -55,8 +55,41 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { teams: newTeams } = await request.json();
+    const payload = await request.json();
     const now = new Date();
+
+    if (payload.team) {
+      const { name, players } = payload.team;
+
+      if (
+        typeof name !== "string" ||
+        !name.trim() ||
+        !Array.isArray(players) ||
+        players.length === 0 ||
+        players.some((player) => typeof player !== "string" || !player.trim())
+      ) {
+        return NextResponse.json(
+          { error: "Team name and at least one player are required" },
+          { status: 400 },
+        );
+      }
+
+      const newTeam = {
+        id: nanoid(),
+        name: name.trim(),
+        players: JSON.stringify(players.map((player: string) => player.trim())),
+        createdAt: now,
+        createdBy: session.user.id,
+      };
+
+      await db.insert(teams).values(newTeam);
+      return NextResponse.json({
+        success: true,
+        team: { ...newTeam, players: JSON.parse(newTeam.players) },
+      });
+    }
+
+    const { teams: newTeams } = payload;
 
     // Delete all existing teams and insert new ones in a transaction-like manner
     await db.delete(teams);
