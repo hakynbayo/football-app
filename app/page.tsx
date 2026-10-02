@@ -31,7 +31,6 @@ type TabType = "teams" | "matches" | "history" | "standings" | "leaderboard";
 
 export default function HomePage() {
   const { teams, setTeams, addTeam, updateTeam, deleteTeam } = useTeams();
-  const [playerText, setPlayerText] = useState("");
   const { stats, addMatchResult, clearMatchResults } = useMatchResults();
   const { teamOfWeek, saveTeamOfTheWeek, getTeamOfWeekByMonth } =
     useTeamOfTheWeek();
@@ -41,7 +40,6 @@ export default function HomePage() {
   const router = useRouter();
 
   const isAdmin = session?.user?.role === "admin";
-
   const handleLogin = () => {
     router.push("/login");
   };
@@ -172,8 +170,6 @@ export default function HomePage() {
                     </h2>
                   </div>
                   <PlayerInputForm
-                    playerText={playerText}
-                    setPlayerText={setPlayerText}
                     onGenerateTeams={handleGenerateTeams}
                   />
                   <ManualTeamForm onAddTeam={addTeam} />
