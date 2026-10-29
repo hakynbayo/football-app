@@ -25,7 +25,7 @@ interface MatchInputProps {
         scoreA: number,
         scoreB: number,
         goals: GoalEvent[],
-    ) => void;
+    ) => Promise<void>;
 }
 
 const MatchInput: FC<MatchInputProps> = ({ teams, onSubmit }) => {
@@ -36,6 +36,7 @@ const MatchInput: FC<MatchInputProps> = ({ teams, onSubmit }) => {
     const [goals, setGoals] = useState<GoalEvent[]>([]);
     const [showDialog, setShowDialog] = useState(false);
     const [successMessage, setSuccessMessage] = useState("");
+    const [errorMessage, setErrorMessage] = useState("");
 
     const numScoreA = Number(scoreA) || 0;
     const numScoreB = Number(scoreB) || 0;
@@ -108,7 +109,7 @@ const MatchInput: FC<MatchInputProps> = ({ teams, onSubmit }) => {
         );
     };
 
-    const handleConfirm = () => {
+    const handleConfirm = async () => {
         if (canSubmit) {
             // Filter out "none" scorers and clean assists
             const cleanGoals = goals
@@ -118,7 +119,17 @@ const MatchInput: FC<MatchInputProps> = ({ teams, onSubmit }) => {
                     assist: g.assist === "none" ? null : g.assist,
                 }));
 
-            onSubmit(teamA, teamB, numScoreA, numScoreB, cleanGoals);
+            setErrorMessage("");
+            try {
+                await onSubmit(teamA, teamB, numScoreA, numScoreB, cleanGoals);
+            } catch (error) {
+                setErrorMessage(
+                    error instanceof Error
+                        ? error.message
+                        : "Could not save this match and its goal details.",
+                );
+                return;
+            }
 
             setSuccessMessage(
                 `Result submitted: ${teamA} ${scoreA} - ${scoreB} ${teamB}`,
@@ -203,6 +214,12 @@ const MatchInput: FC<MatchInputProps> = ({ teams, onSubmit }) => {
 
     return (
         <div className="space-y-5">
+            {errorMessage && (
+                <div role="alert" className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                    <p className="text-sm text-red-800 dark:text-red-200 font-medium">{errorMessage}</p>
+                </div>
+            )}
+
             {successMessage && (
                 <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-3 flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0" />

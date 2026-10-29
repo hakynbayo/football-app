@@ -63,11 +63,26 @@ export const useMatchResults = () => {
                     ...g,
                     assist: g.assist === "none" ? null : g.assist,
                 }));
-                await fetch("/api/data/goals", {
+                const goalsResponse = await fetch("/api/data/goals", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ matchId, goals: cleanGoals }),
                 });
+                if (!goalsResponse.ok) {
+                    const rollbackResponse = await fetch("/api/data/matches", {
+                        method: "DELETE",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ id: matchId }),
+                    });
+                    if (!rollbackResponse.ok) {
+                        throw new Error(
+                            "Goal details could not be saved, and the match may still exist. Refresh before retrying.",
+                        );
+                    }
+                    throw new Error(
+                        "Goal details could not be saved. The match was removed; please try again.",
+                    );
+                }
             }
 
             return data;
@@ -143,14 +158,14 @@ export const useMatchResults = () => {
         },
     });
 
-    const addMatchResult = (
+    const addMatchResult = async (
         teamA: string,
         teamB: string,
         scoreA: number,
         scoreB: number,
         goals?: GoalEvent[],
     ) => {
-        addMatchMutation.mutate({ teamA, teamB, scoreA, scoreB, goals });
+        await addMatchMutation.mutateAsync({ teamA, teamB, scoreA, scoreB, goals });
     };
 
     const removeMatch = (id: string) => {
