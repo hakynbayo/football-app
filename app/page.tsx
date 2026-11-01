@@ -101,28 +101,28 @@ export default function HomePage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 flex flex-col pb-20">
       {/* Header */}
       <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-10 shadow-sm">
-        <div className="max-w-2xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
+        <div className="max-w-2xl mx-auto px-3 py-3 sm:px-4 sm:py-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent sm:text-2xl">
                 Football App
               </h1>
-              <p className="text-xs text-muted-foreground mt-0.5">
+              <p className="text-[11px] text-muted-foreground mt-0.5 sm:text-xs">
                 Team manager & match tracker
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between gap-2 sm:justify-end">
               {status === "loading" ? (
                 <div className="h-9 w-9 rounded-full bg-slate-200 dark:bg-slate-700 animate-pulse" />
               ) : session ? (
                 <>
-                  <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-700 rounded-lg">
+                  <div className="flex items-center gap-2 rounded-lg bg-slate-100 px-2 py-1.5 dark:bg-slate-700 sm:px-3">
                     <User className="w-4 h-4 text-slate-600 dark:text-slate-300" />
-                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    <span className="truncate text-xs font-medium text-slate-700 dark:text-slate-300 sm:text-sm">
                       {session.user?.name || session.user?.email}
                     </span>
                     <span
-                      className={`text-xs px-2 py-0.5 rounded-full font-medium ${session.user?.role === "admin"
+                      className={`hidden text-[10px] px-2 py-0.5 rounded-full font-medium sm:inline-flex ${session.user?.role === "admin"
                         ? "bg-blue-600 text-white"
                         : "bg-green-600 text-white"
                         }`}
@@ -132,19 +132,19 @@ export default function HomePage() {
                   </div>
                   <button
                     onClick={handleLogout}
-                    className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors text-sm font-medium"
+                    className="flex items-center gap-1.5 rounded-lg bg-red-600 px-3 py-2 text-white transition-colors text-xs font-medium hover:bg-red-700 sm:gap-2 sm:px-4 sm:text-sm"
                   >
                     <LogOut className="w-4 h-4" />
-                    <span className="hidden sm:inline">Logout</span>
+                    <span>Logout</span>
                   </button>
                 </>
               ) : (
                 <button
                   onClick={handleLogin}
-                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg transition-colors text-sm font-medium"
+                  className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 px-3 py-2 text-white transition-colors text-xs font-medium hover:from-blue-700 hover:to-purple-700 sm:gap-2 sm:px-4 sm:text-sm"
                 >
                   <LogIn className="w-4 h-4" />
-                  <span className="hidden sm:inline">Login</span>
+                  <span>Login</span>
                 </button>
               )}
               <ResetTeamsButton />
@@ -155,12 +155,12 @@ export default function HomePage() {
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto">
-        <div className="max-w-2xl mx-auto px-4 py-6">
+        <div className="mx-auto max-w-2xl px-3 py-4 sm:px-4 sm:py-6">
           {/* Teams Tab */}
           {activeTab === "teams" && (
             <div className="space-y-6 animate-in slide-in-from-right duration-200">
               {isAdmin && (
-                <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
+                <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4 sm:p-6">
                   <div className="flex items-center gap-2 mb-4">
                     <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
                       <Users className="w-5 h-5 text-blue-600 dark:text-blue-400" />
@@ -300,7 +300,7 @@ export default function HomePage() {
       {/* Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 shadow-lg z-20">
         <div className="max-w-2xl mx-auto px-4 py-2">
-          <div className="flex items-center justify-around">
+          <div className="flex items-center justify-around gap-1">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -308,15 +308,15 @@ export default function HomePage() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-all duration-200 flex-1 ${isActive
+                  className={`flex flex-1 flex-col items-center gap-1 rounded-lg px-1 py-2 transition-all duration-200 sm:px-3 ${isActive
                     ? "bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400"
                     : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700"
                     }`}
                 >
                   <Icon
-                    className={`w-5 h-5 ${isActive ? "scale-110" : ""} transition-transform`}
+                    className={`h-4 w-4 sm:h-5 sm:w-5 ${isActive ? "scale-110" : ""} transition-transform`}
                   />
-                  <span className="text-xs font-medium">{tab.label}</span>
+                  <span className="text-[10px] font-medium leading-none sm:text-xs">{tab.label}</span>
                 </button>
               );
             })}

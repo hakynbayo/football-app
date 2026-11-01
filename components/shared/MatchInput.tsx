@@ -37,6 +37,7 @@ const MatchInput: FC<MatchInputProps> = ({ teams, onSubmit }) => {
     const [showDialog, setShowDialog] = useState(false);
     const [successMessage, setSuccessMessage] = useState("");
     const [errorMessage, setErrorMessage] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const numScoreA = Number(scoreA) || 0;
     const numScoreB = Number(scoreB) || 0;
@@ -109,39 +110,46 @@ const MatchInput: FC<MatchInputProps> = ({ teams, onSubmit }) => {
         );
     };
 
-    const handleConfirm = async () => {
-        if (canSubmit) {
-            // Filter out "none" scorers and clean assists
-            const cleanGoals = goals
-                .filter((g) => g.scorer !== "none")
-                .map((g) => ({
-                    ...g,
-                    assist: g.assist === "none" ? null : g.assist,
-                }));
-
-            setErrorMessage("");
-            try {
-                await onSubmit(teamA, teamB, numScoreA, numScoreB, cleanGoals);
-            } catch (error) {
-                setErrorMessage(
-                    error instanceof Error
-                        ? error.message
-                        : "Could not save this match and its goal details.",
-                );
-                return;
-            }
-
-            setSuccessMessage(
-                `Result submitted: ${teamA} ${scoreA} - ${scoreB} ${teamB}`,
-            );
-            setTimeout(() => setSuccessMessage(""), 3000);
-
-            setTeamA("");
-            setTeamB("");
-            setScoreA("");
-            setScoreB("");
-            setGoals([]);
+    const handleConfirm = async (): Promise<boolean> => {
+        if (!canSubmit || isSubmitting) {
+            return false;
         }
+
+        setIsSubmitting(true);
+
+        // Filter out "none" scorers and clean assists
+        const cleanGoals = goals
+            .filter((g) => g.scorer !== "none")
+            .map((g) => ({
+                ...g,
+                assist: g.assist === "none" ? null : g.assist,
+            }));
+
+        setErrorMessage("");
+        try {
+            await onSubmit(teamA, teamB, numScoreA, numScoreB, cleanGoals);
+        } catch (error) {
+            setErrorMessage(
+                error instanceof Error
+                    ? error.message
+                    : "Could not save this match and its goal details.",
+            );
+            return false;
+        } finally {
+            setIsSubmitting(false);
+        }
+
+        setSuccessMessage(
+            `Result submitted: ${teamA} ${scoreA} - ${scoreB} ${teamB}`,
+        );
+        setTimeout(() => setSuccessMessage(""), 3000);
+
+        setTeamA("");
+        setTeamB("");
+        setScoreA("");
+        setScoreB("");
+        setGoals([]);
+        return true;
     };
 
     const renderGoalRows = (goalList: GoalEvent[], teamName: string) => {
@@ -167,7 +175,7 @@ const MatchInput: FC<MatchInputProps> = ({ teams, onSubmit }) => {
                             <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">
                                 Goal {localIdx + 1}
                             </span>
-                            <div className="grid grid-cols-2 gap-2">
+                            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                                 <Select
                                     value={goal.scorer}
                                     onValueChange={(val) => updateGoalRow(globalIdx, "scorer", val)}
@@ -231,7 +239,7 @@ const MatchInput: FC<MatchInputProps> = ({ teams, onSubmit }) => {
 
             <div className="space-y-4">
                 {/* Team & Score Selection */}
-                <div className="grid gap-4 grid-cols-2">
+                <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
                     <div className="space-y-2">
                         <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300">
                             First Team
@@ -305,7 +313,7 @@ const MatchInput: FC<MatchInputProps> = ({ teams, onSubmit }) => {
                         <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                             Goal Details ({goals.length})
                         </h3>
-                        <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
+                        <div className="grid gap-3 grid-cols-1 md:grid-cols-2">
                             {/* Team A goals */}
                             <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-3 border border-slate-200 dark:border-slate-700">
                                 <p className="text-xs font-bold text-slate-700 dark:text-slate-200 mb-2">
@@ -329,11 +337,11 @@ const MatchInput: FC<MatchInputProps> = ({ teams, onSubmit }) => {
                     <AlertDialogTrigger asChild>
                         <Button
                             className="w-full h-11 text-sm bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 flex items-center gap-2"
-                            disabled={!canSubmit}
+                            disabled={!canSubmit || isSubmitting}
                             onClick={() => setShowDialog(true)}
                         >
                             <Trophy className="w-4 h-4" />
-                            Submit Match Result
+                            {isSubmitting ? "Submitting..." : "Submit Match Result"}
                         </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
@@ -373,13 +381,16 @@ const MatchInput: FC<MatchInputProps> = ({ teams, onSubmit }) => {
                                 Cancel
                             </AlertDialogCancel>
                             <AlertDialogAction
-                                onClick={() => {
-                                    handleConfirm();
-                                    setShowDialog(false);
+                                onClick={async () => {
+                                    const didSubmit = await handleConfirm();
+                                    if (didSubmit) {
+                                        setShowDialog(false);
+                                    }
                                 }}
-                                className="bg-green-600 hover:bg-green-700"
+                                disabled={isSubmitting}
+                                className="bg-green-600 hover:bg-green-700 disabled:opacity-50"
                             >
-                                Submit
+                                {isSubmitting ? "Submitting..." : "Submit"}
                             </AlertDialogAction>
                         </AlertDialogFooter>
                     </AlertDialogContent>

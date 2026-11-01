@@ -7,6 +7,17 @@ import { nanoid } from "nanoid";
 
 export const runtime = "nodejs";
 
+const parsePlayers = (playersValue: unknown): string[] => {
+  if (typeof playersValue !== "string") return [];
+
+  try {
+    const parsed = JSON.parse(playersValue);
+    return Array.isArray(parsed) ? parsed.filter((player) => typeof player === "string") : [];
+  } catch {
+    return [];
+  }
+};
+
 // GET - Fetch all teams
 export async function GET() {
   try {
@@ -27,7 +38,7 @@ export async function GET() {
     const result = rows.map((row) => ({
       id: row.id,
       name: row.name,
-      players: JSON.parse(row.players) as string[],
+      players: parsePlayers(row.players),
     }));
 
     return NextResponse.json({ teams: result });
@@ -142,11 +153,25 @@ export async function PUT(request: NextRequest) {
       );
     }
 
+    if (typeof name !== "string" || !name.trim()) {
+      return NextResponse.json(
+        { error: "Team name is required" },
+        { status: 400 },
+      );
+    }
+
+    if (!Array.isArray(players) || players.some((player) => typeof player !== "string" || !player.trim())) {
+      return NextResponse.json(
+        { error: "Players must be a valid array of non-empty strings" },
+        { status: 400 },
+      );
+    }
+
     await db
       .update(teams)
       .set({
-        name,
-        players: JSON.stringify(players),
+        name: name.trim(),
+        players: JSON.stringify(players.map((player) => player.trim())),
       })
       .where(eq(teams.id, id));
 

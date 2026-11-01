@@ -114,8 +114,13 @@ export async function registerUser(
     .from(users)
     .where(eq(users.email, email));
 
-  if (existingUsers.length > 0) {
-    throw new Error("User already exists");
+  const existingUsernameUsers = await db
+    .select()
+    .from(users)
+    .where(eq(users.name, name));
+
+  if (existingUsers.length > 0 || existingUsernameUsers.length > 0) {
+    throw new Error("User with this email or username already exists");
   }
 
   const passwordHash = await bcrypt.hash(password, 10);

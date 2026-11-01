@@ -82,10 +82,10 @@ const PlayerInputForm: FC<PlayerInputFormProps> = ({
         : unseededPlayers.split("\n").filter((line) => line.trim()).length;
 
     return (
-        <div className="max-w-2xl mx-auto space-y-6">
-            <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4 flex items-start gap-3">
+        <div className="mx-auto max-w-2xl space-y-4 sm:space-y-6">
+            <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3 sm:p-4 flex items-start gap-3">
                 <AlertCircle className="w-5 h-5 text-black dark:text-white mt-0.5 flex-shrink-0" />
-                <div className="text-xs text-black dark:text-white">
+                <div className="text-[11px] text-black dark:text-white sm:text-xs">
                     <p className="font-medium mb-1">Tips for best results:</p>
                     <ul className="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300">
                         <li>Choose whether to use two seeded player pots</li>
@@ -95,7 +95,7 @@ const PlayerInputForm: FC<PlayerInputFormProps> = ({
                 </div>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
                 <div className="grid grid-cols-2 gap-1 rounded-lg bg-gray-100 dark:bg-gray-800 p-1" role="group" aria-label="Player seeding mode">
                     {(["unseeded", "seeded"] as const).map((option) => (
                         <button
@@ -113,7 +113,7 @@ const PlayerInputForm: FC<PlayerInputFormProps> = ({
                     ))}
                 </div>
 
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+                <div className="flex flex-col gap-3 bg-gray-50 dark:bg-gray-800 p-3 sm:p-4 rounded-lg border border-gray-200 dark:border-gray-700 sm:flex-row sm:items-center">
                     <label className="text-sm font-medium text-black dark:text-white flex-shrink-0">
                         Players per team:
                     </label>
@@ -126,14 +126,14 @@ const PlayerInputForm: FC<PlayerInputFormProps> = ({
                             onChange={(e) => setPlayersPerTeam(Number(e.target.value))}
                             className="w-full sm:w-24 text-center font-semibold"
                         />
-                        <span className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                        <span className="text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap sm:text-sm">
                             (~{playerCount > 0 ? Math.ceil(playerCount / playersPerTeam) : 0} teams)
                         </span>
                     </div>
                 </div>
 
                 {mode === "unseeded" ? (
-                    <section className="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                    <section className="rounded-lg border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
                         <h3 className="text-sm font-semibold text-black dark:text-white mb-2">Players</h3>
                         <Textarea
                             aria-label="Unseeded players"
@@ -145,11 +145,11 @@ const PlayerInputForm: FC<PlayerInputFormProps> = ({
                         />
                     </section>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
                         {pots.map((pot, index) => (
                             <section
                                 key={index}
-                                className="rounded-lg border border-gray-200 dark:border-gray-700 p-4"
+                                className="rounded-lg border border-gray-200 dark:border-gray-700 p-3 sm:p-4"
                             >
                                 <h3 className="text-sm font-semibold text-black dark:text-white mb-2">
                                     Pot {index + 1} <span className="font-normal text-gray-500">({pot.split("\n").filter((line) => line.trim()).length})</span>

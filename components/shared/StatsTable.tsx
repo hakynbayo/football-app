@@ -67,17 +67,17 @@ const StatsTable: FC<StatsTableProps> = ({ stats, teams, onFinish }) => {
     return (
         <div className="space-y-3">
             <div className="w-full overflow-x-auto -mx-2 px-2">
-                <table className="w-full text-xs">
+                <table className="w-full text-[11px] sm:text-xs">
                     <thead>
                         <tr className="border-b border-slate-200 dark:border-slate-700">
-                            <th className="py-2 px-1 text-left font-semibold text-slate-500 dark:text-slate-400 w-8">#</th>
+                            <th className="py-2 px-1 text-left font-semibold text-slate-500 dark:text-slate-400 w-7 sm:w-8">#</th>
                             <th className="py-2 px-1 text-left font-semibold text-slate-500 dark:text-slate-400">Team</th>
-                            <th className="py-2 px-1 text-center font-semibold text-slate-500 dark:text-slate-400 w-7">P</th>
-                            <th className="py-2 px-1 text-center font-semibold text-slate-500 dark:text-slate-400 w-7">W</th>
-                            <th className="py-2 px-1 text-center font-semibold text-slate-500 dark:text-slate-400 w-7">D</th>
-                            <th className="py-2 px-1 text-center font-semibold text-slate-500 dark:text-slate-400 w-7">L</th>
-                            <th className="py-2 px-1 text-center font-semibold text-slate-500 dark:text-slate-400 w-8">GD</th>
-                            <th className="py-2 px-1 text-center font-bold text-slate-700 dark:text-slate-200 w-8">Pts</th>
+                            <th className="py-2 px-1 text-center font-semibold text-slate-500 dark:text-slate-400 w-6 sm:w-7">P</th>
+                            <th className="py-2 px-1 text-center font-semibold text-slate-500 dark:text-slate-400 w-6 sm:w-7">W</th>
+                            <th className="py-2 px-1 text-center font-semibold text-slate-500 dark:text-slate-400 w-6 sm:w-7">D</th>
+                            <th className="py-2 px-1 text-center font-semibold text-slate-500 dark:text-slate-400 w-6 sm:w-7">L</th>
+                            <th className="py-2 px-1 text-center font-semibold text-slate-500 dark:text-slate-400 w-7 sm:w-8">GD</th>
+                            <th className="py-2 px-1 text-center font-bold text-slate-700 dark:text-slate-200 w-7 sm:w-8">Pts</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
@@ -92,7 +92,7 @@ const StatsTable: FC<StatsTableProps> = ({ stats, teams, onFinish }) => {
                                     </div>
                                 </td>
                                 <td className="py-1.5 px-1">
-                                    <span className="font-medium text-slate-900 dark:text-slate-100 truncate block max-w-[100px]">
+                                    <span className="font-medium text-slate-900 dark:text-slate-100 truncate block max-w-[100px] sm:max-w-[140px]">
                                         {team.name}
                                     </span>
                                 </td>

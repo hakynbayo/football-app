@@ -52,6 +52,7 @@ const ManualTeamForm: FC<ManualTeamFormProps> = ({ onAddTeam }) => {
           value={name}
           onChange={(event) => setName(event.target.value)}
           aria-label="Team name"
+          className="h-11"
         />
         <div className="relative">
           <Textarea
@@ -59,7 +60,7 @@ const ManualTeamForm: FC<ManualTeamFormProps> = ({ onAddTeam }) => {
             rows={4}
             value={playerText}
             onChange={(event) => setPlayerText(event.target.value)}
-            className="resize-none pr-10"
+            className="resize-none pr-10 min-h-[110px]"
             aria-label="Player names"
           />
           <Users className="absolute right-3 top-3 h-4 w-4 text-slate-400" />
@@ -68,7 +69,7 @@ const ManualTeamForm: FC<ManualTeamFormProps> = ({ onAddTeam }) => {
       <Button
         type="button"
         onClick={handleSubmit}
-        className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
+        className="flex w-full items-center justify-center gap-2 bg-green-600 hover:bg-green-700 sm:w-auto"
       >
         <Plus className="h-4 w-4" />
         Add Team

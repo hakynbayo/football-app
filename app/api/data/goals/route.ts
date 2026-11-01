@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { nanoid } from "nanoid";
 import { PlayerLeaderboard } from "@/types/team";
+import { computeLeaderboardFromGoalRows } from "@/lib/leaderboard";
 
 export const runtime = "nodejs";
 
@@ -24,36 +25,7 @@ export async function GET() {
     }
 
     const rows = await db.select().from(goalEvents);
-
-    const playerMap = new Map<string, { goals: number; assists: number }>();
-
-    for (const row of rows) {
-      const scorer = row.scorer?.trim() || "none";
-      const scorerEntry = playerMap.get(scorer) || { goals: 0, assists: 0 };
-      scorerEntry.goals += 1;
-      playerMap.set(scorer, scorerEntry);
-
-      const assist = row.assist?.trim() || "none";
-      if (assist) {
-        const assistEntry = playerMap.get(assist) || {
-          goals: 0,
-          assists: 0,
-        };
-        assistEntry.assists += 1;
-        playerMap.set(assist, assistEntry);
-      }
-    }
-
-    const leaderboard: PlayerLeaderboard[] = Array.from(playerMap.entries())
-      .map(([player, stats]) => ({
-        player,
-        goals: stats.goals,
-        assists: stats.assists,
-      }))
-      .sort((a, b) => {
-        if (b.goals !== a.goals) return b.goals - a.goals;
-        return b.assists - a.assists;
-      });
+    const leaderboard: PlayerLeaderboard[] = computeLeaderboardFromGoalRows(rows);
 
     return NextResponse.json({ leaderboard });
   } catch (error) {
@@ -94,8 +66,8 @@ export async function POST(request: NextRequest) {
     if (goals.length > 0) {
       const rows = goals.map(
         (goal: { team: string; scorer?: string; assist?: string | null }) => {
-          const scorer = goal.scorer?.trim() ? goal.scorer : "none";
-          const assist = goal.assist?.trim() ? goal.assist : "none";
+          const scorer = goal.scorer?.trim() || "none";
+          const assist = goal.assist?.trim() || null;
 
           return {
             id: nanoid(),
